@@ -102,34 +102,65 @@
   .theme-toggle:active { transform: scale(0.9); }
   .theme-toggle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-  /* ---------- اللافتة الترحيبية مع الحركة الصحيحة ---------- */
+  /* ---------- اللافتة الترحيبية: شريط متحرك احترافي بحركة متصلة بلا قفزات ---------- */
   .welcome-banner {
     background: rgba(0, 75, 155, 0.05);
     border: 1px solid rgba(0, 75, 155, 0.1);
     border-radius: var(--radius);
-    padding: 12px 0; /* Padding horizontal removed to let text start perfectly at edge */
-    overflow: hidden;
-    position: relative;
-    white-space: nowrap;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   html.dark .welcome-banner { background: rgba(58, 130, 246, 0.1); border-color: rgba(58, 130, 246, 0.2); }
-  
+
+  .banner-icon {
+    flex: none;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: rgba(0, 75, 155, 0.1);
+    color: var(--ap-blue);
+    display: flex; align-items: center; justify-content: center;
+  }
+  html.dark .banner-icon { background: rgba(58, 130, 246, 0.2); }
+  .banner-icon svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* الإطار الذي يخفي ما يخرج عن حدوده، مع تلاشٍ ناعم عند الطرفين
+     بدل القطع الحاد لجسم النص */
+  .marquee-viewport {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+    -webkit-mask-image: linear-gradient(to left, transparent, #000 8%, #000 92%, transparent);
+            mask-image: linear-gradient(to left, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  /* الجملة تبدأ ظاهرة كاملةً عند حافة الإطار اليمنى (بجانب الأيقونة
+     مباشرة)، ثم تتحرك مقدمتها جهة اليمين حتى تخرج الجملة كلها تمامًا
+     (translateX(100%) يساوي عرض الجملة نفسها بالضبط، فيضمن خروجها
+     كاملة بصرف النظر عن طولها)، فتُعاد الحلقة فورًا دون أي توقف أو
+     تأخير محسوس قبل ظهورها من جديد. */
   .marquee-text {
     display: inline-block;
     font-size: 0.85rem;
     font-weight: 700;
     color: var(--ink-soft);
-    padding-left: 20%; /* فجوة معقولة قبل إعادة الدخول، بدل فراغ يمتد لنصف الحركة تقريبًا */
-    animation: marquee 25s linear infinite; /* وقت أطول لحركة أبطأ وأكثر سلاسة */
+    white-space: nowrap;
+    animation: marquee-scroll 16s linear infinite;
   }
-  
-  @keyframes marquee {
-    /* مُعدَّلة لتناسب dir="rtl": تبدأ الجملة بأول كلمة داخلة من اليمين
-       وتنتهي بآخر كلمة خارجة من اليسار، بدل العكس كما كانت سابقًا. */
-    0% { transform: translateX(0%); }
-    100% { transform: translateX(-100%); }
+  .welcome-banner:hover .marquee-text { animation-play-state: paused; }
+
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(100%); }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-text { animation: none; }
+    .marquee-viewport { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+  }
+  
   /* ---------- التخطيط الرئيسي ---------- */
   main{ max-width:640px; margin: 16px auto 0; padding:0 16px; display:flex; flex-direction:column; gap:16px; }
   .card{
@@ -289,24 +320,74 @@
   .name-input:focus{ outline:none; border-color:var(--ap-blue); }
 
   /* ---------- حاسبة الرسوم ---------- */
-  details.fee summary{ cursor:pointer; font-weight:700; color:var(--ap-blue); list-style:none; display:flex; align-items:center; justify-content:space-between; }
-  details.fee summary::-webkit-details-marker{ display:none; }
-  details.fee summary .chev{ transition:transform .2s; }
-  details.fee[open] summary .chev{ transform:rotate(180deg); }
+  details.collapsible-card summary{ cursor:pointer; font-weight:700; color:var(--ap-blue); list-style:none; display:flex; align-items:center; justify-content:space-between; }
+  details.collapsible-card summary::-webkit-details-marker{ display:none; }
+  details.collapsible-card summary .chev{ transition:transform .2s; flex-shrink:0; }
+  details.collapsible-card[open] summary .chev{ transform:rotate(180deg); }
   .fee-body{ margin-top:12px; }
   .fee-result{ margin-top:10px; background:var(--paper); border-radius:10px; padding:10px 12px; font-size:.88rem; border: 1px solid var(--line); }
   .fee-note{ font-size:.72rem; color:var(--ink-soft); margin-top:6px; }
 
   /* ---------- المفضلة ---------- */
-  .fav-list{ display:flex; flex-direction:column; gap:8px; }
-  .fav-item{
-    display:flex; align-items:center; justify-content:space-between; gap:8px;
-    background:var(--paper); border-radius:10px; padding:9px 12px; border:1px solid var(--line);
+  .fav-body{ margin-top:12px; }
+  .fav-totals{
+    display:none; gap:8px; margin-bottom:12px;
   }
-  .fav-item button.use{ background:none; border:none; text-align:right; flex:1; cursor:pointer; font-family:inherit; }
-  .fav-item .label{ font-weight:700; color:var(--ink); font-size:.9rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .fav-item .amt{ font-size:.78rem; color:var(--ink-soft); }
-  .fav-item .del{ background:none; border:none; color:var(--red); cursor:pointer; padding:4px; }
+  .fav-totals.show{ display:flex; }
+  .fav-total-chip{
+    flex:1; background:rgba(0, 75, 155, 0.08); border-radius:10px; padding:8px 10px;
+    display:flex; flex-direction:column; gap:2px;
+  }
+  .fav-total-chip span{ font-size:.72rem; color:var(--ink-soft); }
+  .fav-total-chip b{ font-size:.95rem; color:var(--ap-blue); }
+  /* يعرض ارتفاع عنصرين تقريبًا مع تلميح بصري ببداية الثالث، وأي عدد إضافي
+     يُتصفّح بالتمرير داخل نفس الإطار بدل تمدّد البطاقة إلى ما لا نهاية. */
+  .fav-list{
+    display:flex; flex-direction:column; gap:10px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-inline-end: 6px;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 75, 155, 0.35) transparent;
+  }
+  .fav-list::-webkit-scrollbar{ width:6px; }
+  .fav-list::-webkit-scrollbar-track{ background:transparent; margin:2px 0; }
+  .fav-list::-webkit-scrollbar-thumb{ background:rgba(0, 75, 155, 0.35); border-radius:999px; }
+  .fav-list::-webkit-scrollbar-thumb:hover{ background:rgba(0, 75, 155, 0.55); }
+  html.dark .fav-list{ scrollbar-color: rgba(58, 130, 246, 0.4) transparent; }
+  html.dark .fav-list::-webkit-scrollbar-thumb{ background:rgba(58, 130, 246, 0.4); }
+  html.dark .fav-list::-webkit-scrollbar-thumb:hover{ background:rgba(58, 130, 246, 0.6); }
+  .fav-item{
+    display:flex; flex-direction:column; gap:10px;
+    background:var(--paper); border-radius:12px; padding:12px 14px; border:1px solid var(--line);
+    flex: none;
+  }
+  .fav-item-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .fav-item-label{
+    font-weight:800; color:var(--ink); font-size:.95rem;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .fav-item-del{
+    flex:none; background:none; border:none; color:var(--ink-soft); cursor:pointer;
+    padding:4px; line-height:1; font-size:.95rem; transition:color .15s;
+  }
+  .fav-item-del:hover{ color:var(--red); }
+
+  .fav-item-use{ display:block; width:100%; background:none; border:none; padding:0; margin:0; font-family:inherit; cursor:pointer; text-align:right; }
+  /* ترتيب الحقول: إجمالي السحوبات، إجمالي الرسوم، الوقت، التاريخ —
+     شبكة 2×2 تُقرأ يمينًا فيسارًا ثم من الأعلى للأسفل (تطابق ترتيب DOM
+     تلقائيًا في سياق RTL). */
+  .fav-item-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .fav-field{
+    background:rgba(0, 75, 155, 0.06); border-radius:8px; padding:7px 10px;
+    display:flex; flex-direction:column; gap:2px; min-width:0;
+  }
+  html.dark .fav-field{ background:rgba(58, 130, 246, 0.1); }
+  .fav-field span{ font-size:.68rem; color:var(--ink-soft); }
+  .fav-field b{ font-size:.85rem; font-weight:800; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fav-field.withdraw b{ color:var(--ap-blue); }
+  .fav-field.fee b{ color:var(--red); }
   
   .fav-add-row{ display:flex; gap:8px; margin-top:12px; }
   .fav-add-row input{
@@ -363,9 +444,14 @@
 
 <main>
 
-  <!-- لافتة ترحيبية أنيقة بحركة مستمرة -->
+  <!-- لافتة ترحيبية أنيقة بحركة متصلة واحترافية -->
   <div class="welcome-banner">
-    <span class="marquee-text">أدخل المبلغ بالدينار أو السنتيم، لتحويله فورًا إلى حروف صحيحة جاهزة لملء صكك البريدي (CCP) بدون أخطاء.</span>
+    <span class="banner-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+    </span>
+    <div class="marquee-viewport">
+      <span class="marquee-text" dir="rtl">أدخل المبلغ بالدينار أو السنتيم، لتحويله فورًا إلى حروف صحيحة جاهزة لملء صكك البريدي (CCP) بدون أخطاء.</span>
+    </div>
   </div>
 
   <!-- 1. AMOUNT INPUT -->
@@ -475,7 +561,7 @@
 
   <!-- 4. FEE ESTIMATOR -->
   <section class="card">
-    <details class="fee" open>
+    <details class="fee collapsible-card">
       <summary>
         <span><span class="num" style="display:inline-flex;background:rgba(0, 75, 155, 0.1);border-radius:50%;width:24px;height:24px;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;color:var(--ap-blue);margin-left:6px;font-family:sans-serif;">4</span>حاسبة الرسوم البريدية الرسمية (CCP)</span>
         <svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -492,13 +578,30 @@
 
   <!-- 5. FAVORITES -->
   <section class="card">
-    <h2><span class="num">5</span>المفضلة</h2>
-    <div class="fav-list" id="favList"></div>
-    <p class="empty-note" id="favEmpty">لا توجد مبالغ محفوظة بعد.</p>
-    <div class="fav-add-row">
-      <input id="favLabel" placeholder="تسمية (مثلاً: كراء)" maxlength="30">
-      <button id="favAddBtn" type="button">حفظ</button>
-    </div>
+    <details class="fav-details collapsible-card">
+      <summary>
+        <span><span class="num" style="display:inline-flex;background:rgba(0, 75, 155, 0.1);border-radius:50%;width:24px;height:24px;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;color:var(--ap-blue);margin-left:6px;font-family:sans-serif;">5</span>المفضلة</span>
+        <svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </summary>
+      <div class="fav-body">
+        <div class="fav-totals" id="favTotals">
+          <div class="fav-total-chip">
+            <span>إجمالي السحوبات</span>
+            <b id="favTotalWithdraw">0,00 دج</b>
+          </div>
+          <div class="fav-total-chip">
+            <span>إجمالي الرسوم</span>
+            <b id="favTotalFees">0,00 دج</b>
+          </div>
+        </div>
+        <div class="fav-list" id="favList"></div>
+        <p class="empty-note" id="favEmpty">لا توجد مبالغ محفوظة بعد.</p>
+        <div class="fav-add-row">
+          <input id="favLabel" placeholder="تسمية (مثلاً: كراء)" maxlength="30">
+          <button id="favAddBtn" type="button">حفظ</button>
+        </div>
+      </div>
+    </details>
   </section>
 
 </main>
@@ -843,9 +946,12 @@
      - Safari يدعمه عبر webkitSpeechRecognition لكنه أكثر حساسية لحالة إذن
        الميكروفون، ولذلك نطلب الإذن صراحةً عبر getUserMedia أولاً لتوحيد السلوك
        ولتمييز "رفض الإذن" عن "لا يوجد ميكروفون" عن "غير مدعوم" بوضوح للمستخدم.
-     - محرّكات التعرف على العربية قد تُرجع النتيجة بأرقام هندية (١٢٣) أو بأرقام
-       مكتوبة بالحروف ("خمسة آلاف") بدل الأرقام العادية؛ لذلك نطبّع الأرقام
-       الهندية إلى لاتينية، ونضيف مُحلّلًا للأرقام المكتوبة بالحروف كخطة بديلة. */
+     - محرّكات التعرف على العربية قد تُرجع النتيجة بأرقام هندية (١٢٣)، أو
+       بأرقام مكتوبة بالحروف بالكامل ("خمسة آلاف")، أو بصيغة مختلطة شائعة
+       جدًا في Chrome (رقم مباشر متبوعًا بكلمة الألوف/الملايين، مثل
+       "5 آلاف" بدل "خمسة آلاف")؛ لذلك نطبّع الأرقام الهندية إلى لاتينية،
+       ونستخدم محلّلًا واحدًا يفهم الأرقام المباشرة وكلمات الألوف/الملايين
+       معًا حتى لا يُفقد ضرب "ألف/مليون" عند ظهور رقم صريح داخل الجملة. */
   const micBtn = document.getElementById('micBtn');
   const micHint = document.getElementById('micHint');
   const defaultMicHint = micHint.textContent;
@@ -888,7 +994,7 @@
     const clean = text
       .replace(/[أإآ]/g,'ا')
       .replace(/ة/g,'ه')
-      .replace(/[^\u0600-\u06FF\s]/g,' ');
+      .replace(/[^\u0600-\u06FF0-9.\s]/g,' ');
     return clean.split(/\s+/).filter(Boolean).map(tok=>{
       // نزيل واو الربط الملتصقة بالكلمة (مثل "وعشرون")
       if(tok.length > 2 && tok[0] === 'و'){
@@ -907,6 +1013,11 @@
     let value = 0, matched = false;
     for(let i=0;i<tokens.length;i++){
       const t = tokens[i];
+      // بعض محركات التعرف الصوتي (خصوصًا Chrome) تُرجع النتيجة بصيغة
+      // مختلطة: رقمًا مباشرًا متبوعًا بكلمة "ألف/مليون" بدل نطق كامل
+      // الرقم حروفًا (مثال: "5 آلاف" بدل "خمسة آلاف")، لذلك نتعرّف على
+      // أي رمز رقم مباشر ضمن المجموعة كما نتعرّف على الكلمات المنطوقة.
+      if(/^\d+(\.\d+)?$/.test(t)){ value += parseFloat(t); matched = true; continue; }
       const two = t + (tokens[i+1] || '');
       if(_numTeens[two] !== undefined){ value += _numTeens[two]; matched = true; i++; continue; }
       if(_numHundreds[t] !== undefined){ value += _numHundreds[t]; matched = true; continue; }
@@ -951,11 +1062,17 @@
   }
 
   function extractAmount(rawTranscript){
-    const transcript = normalizeDigits(rawTranscript);
-    const digits = transcript.replace(/[^\d.,]/g,'');
-    if(digits) return digits.replace(',', '.');
-    const fromWords = wordsToNumber(rawTranscript);
-    if(!isNaN(fromWords)) return String(fromWords);
+    // نجرّب أولًا المحلّل المُدمج (يفهم الأرقام المباشرة وكلمات الألوف/الملايين
+    // معًا)، لأن بعض محركات التعرف الصوتي تُرجع مزيجًا من الاثنين، مثل
+    // "5 آلاف" أو "50 ألف" بدل "خمسة آلاف" أو "خمسون ألف" كاملةً بالحروف.
+    // الاعتماد على استخراج الأرقام فقط (كما كان سابقًا) كان يتجاهل كلمة
+    // "ألف/مليون" تمامًا في هذه الحالة، فيُدخل الرقم بدون أصفاره.
+    const transcript = normalizeDigits(rawTranscript).replace(/(\d),(\d)/g, '$1.$2');
+    const parsed = wordsToNumber(transcript);
+    if(!isNaN(parsed)) return String(parsed);
+    // احتياطي أخير: نص أرقام صرفة لم يلتقطه المحلّل لأي سبب
+    const digits = transcript.replace(/[^\d.]/g,'');
+    if(digits) return digits;
     return null;
   }
 
@@ -1042,7 +1159,9 @@
       const amount = extractAmount(rawTranscript);
       if(amount !== null){
         amountInput.value = amount; recalc();
-        micHint.textContent = 'تم التعرف على: «'+rawTranscript+'» — تحقّق من الرقم قبل الاستعمال.';
+        const unit = mode === 'centime' ? 'سنتيم' : 'دج';
+        const shown = String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        micHint.textContent = 'تم فهم: «'+rawTranscript+'» ← '+shown+' '+unit+' — تحقّق من الرقم قبل الاستعمال.';
       } else {
         micHint.textContent = 'لم أتعرف على رقم في: «'+rawTranscript+'» — جرّب الكتابة يدويًا.';
       }
@@ -1271,9 +1390,16 @@
     document.getElementById('feeTotal').textContent = fmtDZD(Math.floor(totalAccountDebitCentimes/100), totalAccountDebitCentimes%100) + ' دج';
   }
 
-  /* ============ المفضلة (Local Storage) ============ */
+  /* ============ المفضلة (Local Storage) ============
+     كل عنصر محفوظ يخزّن الآن أيضًا: الرسوم البريدية المحسوبة وقت الحفظ
+     (fee)، وتاريخ/وقت الحفظ (savedAt) — لتمييز "سحب فعلي" بختم زمني عن مجرد
+     مبلغ مفضّل. المدخلات القديمة (من نسخة سابقة بدون هذين الحقلين) تبقى
+     صالحة: نحسب رسومها عند العرض ونعرض تاريخها كـ"—". */
   const favList = document.getElementById('favList');
   const favEmpty = document.getElementById('favEmpty');
+  const favTotals = document.getElementById('favTotals');
+  const favTotalWithdrawEl = document.getElementById('favTotalWithdraw');
+  const favTotalFeesEl = document.getElementById('favTotalFees');
   const favLabelInput = document.getElementById('favLabel');
   const favAddBtn = document.getElementById('favAddBtn');
   const FAV_KEY = 'omar-chek:favorites';
@@ -1286,28 +1412,76 @@
   function saveFavorites(){
     try{ window.localStorage.setItem(FAV_KEY, JSON.stringify(favorites)); }catch(e){}
   }
+  // رسوم العنصر: نستخدم القيمة المحفوظة إن وُجدت (سجل تاريخي دقيق)، وإلا
+  // نحسبها الآن (توافقًا مع مدخلات محفوظة من نسخة سابقة).
+  function favFee(f){
+    return (typeof f.fee === 'number') ? f.fee : calculateCCPFee(f.dinars);
+  }
+  function formatSavedAt(iso){
+    if(!iso) return { date:'—', time:'—' };
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return { date:'—', time:'—' };
+    const datePart = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const timePart = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    return { date: datePart, time: timePart };
+  }
   function renderFavorites(){
     favList.innerHTML=''; favEmpty.style.display = favorites.length ? 'none' : 'block';
+    favTotals.classList.toggle('show', favorites.length > 0);
+
+    let totalWithdrawCentimes = 0;
+    let totalFeeCentimes = 0;
+
     favorites.forEach((f, idx)=>{
+      const fee = favFee(f);
+      totalWithdrawCentimes += f.dinars * 100 + (f.centimes || 0);
+      totalFeeCentimes += fee * 100;
+      const when = formatSavedAt(f.savedAt);
+
       const row = document.createElement('div'); row.className='fav-item';
-      const useBtn = document.createElement('button'); useBtn.className='use'; useBtn.type='button';
-      useBtn.innerHTML = '<span class="label"></span><span class="amt"></span>';
-      useBtn.querySelector('.label').textContent = f.label;
-      useBtn.querySelector('.amt').textContent = fmtDZD(f.dinars, f.centimes);
+
+      const head = document.createElement('div'); head.className='fav-item-head';
+      const labelEl = document.createElement('span'); labelEl.className='fav-item-label'; labelEl.textContent = f.label;
+      const delBtn = document.createElement('button'); delBtn.className='fav-item-del'; delBtn.type='button';
+      delBtn.setAttribute('aria-label','حذف'); delBtn.innerHTML = '✕';
+      delBtn.addEventListener('click', ()=>{ favorites.splice(idx,1); saveFavorites(); renderFavorites(); });
+      head.appendChild(labelEl); head.appendChild(delBtn);
+
+      const useBtn = document.createElement('button'); useBtn.className='fav-item-use'; useBtn.type='button';
+      useBtn.innerHTML =
+        '<div class="fav-item-grid">' +
+          '<div class="fav-field withdraw"><span>إجمالي السحوبات</span><b></b></div>' +
+          '<div class="fav-field fee"><span>إجمالي الرسوم</span><b></b></div>' +
+          '<div class="fav-field"><span>الوقت</span><b></b></div>' +
+          '<div class="fav-field"><span>التاريخ</span><b></b></div>' +
+        '</div>';
+      const values = useBtn.querySelectorAll('.fav-field b');
+      values[0].textContent = fmtDZD(f.dinars, f.centimes || 0) + ' دج';
+      values[1].textContent = fmtDZD(fee, 0) + ' دج';
+      values[2].textContent = when.time;
+      values[3].textContent = when.date;
       useBtn.addEventListener('click', ()=>{
         document.getElementById('modeDinarBtn').click();
         amountInput.value = f.dinars + (f.centimes ? '.'+String(f.centimes).padStart(2,'0') : '');
         recalc(); window.scrollTo({top:0, behavior:'smooth'});
       });
-      const delBtn = document.createElement('button'); delBtn.className='del'; delBtn.type='button'; delBtn.innerHTML='✕';
-      delBtn.addEventListener('click', ()=>{ favorites.splice(idx,1); saveFavorites(); renderFavorites(); });
-      row.appendChild(useBtn); row.appendChild(delBtn); favList.appendChild(row);
+
+      row.appendChild(head); row.appendChild(useBtn); favList.appendChild(row);
     });
+
+    favTotalWithdrawEl.textContent = fmtDZD(Math.floor(totalWithdrawCentimes/100), totalWithdrawCentimes%100) + ' دج';
+    favTotalFeesEl.textContent = fmtDZD(Math.floor(totalFeeCentimes/100), totalFeeCentimes%100) + ' دج';
   }
   favAddBtn.addEventListener('click', ()=>{
     const label = favLabelInput.value.trim() || 'مبلغ محفوظ';
     if(current.dinars===0 && current.centimes===0) return;
-    favorites.unshift({ label, dinars: current.dinars, centimes: current.centimes });
+    favorites.unshift({
+      label,
+      dinars: current.dinars,
+      centimes: current.centimes,
+      fee: calculateCCPFee(current.dinars),
+      savedAt: new Date().toISOString()
+    });
     favorites = favorites.slice(0,20);
     favLabelInput.value=''; saveFavorites(); renderFavorites();
   });
