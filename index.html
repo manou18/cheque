@@ -232,8 +232,12 @@
 
   /* ---------- المعاينة الواقعية للصك ---------- */
   .real-check-container {
-    position: relative; width: 100%; border-radius: 8px; overflow: hidden;
+    position: relative; border-radius: 8px; overflow: hidden;
     border: 1px solid var(--line); background: #e9e5d9; box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+    /* تكبير المعاينة عبر "الخروج" من حشوة البطاقة (18px) وحشوة main (16px) معًا،
+       لتمتد الصورة حتى حافة الشاشة على الجوال بدل أن تبقى محصورة داخل البطاقة —
+       أكبر حجم ممكن دون التأثير على بقية عناصر الصفحة. */
+    margin: 0 -34px;
   }
   .real-check-container img { width: 100%; display: block; user-select: none; pointer-events: none; }
   .chk-text {
