@@ -1,0 +1,438 @@
+:root{
+    /* ألوان بريد الجزائر الرسمية */
+    --ap-blue: #004B9B;
+    --ap-blue-dark: #003366;
+    --ap-yellow: #FFC600;
+    
+    /* ألوان الخلفيات والنصوص */
+    --paper:#F4F6F9;
+    --paper-dark:#E2E6EC;
+    --ink:#1C2B45;
+    --ink-soft:#4A5670;
+    --green:#10B981;
+    --red:#EF4444;
+    --line:#D1D5DB;
+    --radius:14px;
+    --shadow: 0 4px 6px -1px rgba(0, 75, 155, 0.08), 0 2px 4px -1px rgba(0, 75, 155, 0.04);
+    --card-bg: #FFFFFF;
+  }
+  
+  /* --- الوضع الليلي --- */
+  html.dark {
+    --ap-blue: #3A82F6;
+    --ap-blue-dark: #1E3A8A;
+    --ap-yellow: #FFC600;
+    --paper: #121212;
+    --paper-dark: #1E1E1E;
+    --ink: #E4E6EB;
+    --ink-soft: #A0AABF;
+    --line: #333333;
+    --card-bg: #1A1A1A;
+    --shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0; transition: background-color 0.3s ease, color 0.3s ease;}
+  body{
+    background: var(--paper);
+    color:var(--ink);
+    font-family:'Tajawal', 'Segoe UI', sans-serif;
+    line-height:1.55;
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  .ltr{ font-family:'Tajawal', sans-serif; direction:ltr; unicode-bidi:isolate; }
+  h1,h2,h3,.display{ font-family:'Cairo','Tajawal',sans-serif; }
+
+  /* ---------- شريط التطبيق العلوي (App Bar) ---------- */
+  header.app-bar {
+    background: linear-gradient(135deg, var(--ap-blue-dark) 0%, var(--ap-blue) 100%);
+    color: #fff;
+    padding: 12px 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-bottom: 3px solid var(--ap-yellow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .app-bar-inner {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .mark {
+    width: 40px; height: 40px;
+    background: #fff;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+  }
+  .mark svg { width: 24px; height: 24px; }
+  .brand-text h1 { margin: 0; font-size: 1.2rem; font-weight: 900; line-height: 1.1; }
+  .brand-text p { margin: 0; font-size: 0.75rem; color: rgba(255,255,255,0.85); font-weight: 500; }
+  
+  .theme-toggle {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    border-radius: 50%;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .theme-toggle:active { transform: scale(0.9); }
+  .theme-toggle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .header-actions{ display:flex; align-items:center; gap:8px; }
+  .theme-toggle.active{ background: rgba(255,255,255,0.35); }
+
+  /* ---------- اللافتة الترحيبية: شريط متحرك احترافي بحركة متصلة بلا قفزات ---------- */
+  .welcome-banner {
+    background: rgba(0, 75, 155, 0.05);
+    border: 1px solid rgba(0, 75, 155, 0.1);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  html.dark .welcome-banner { background: rgba(58, 130, 246, 0.1); border-color: rgba(58, 130, 246, 0.2); }
+
+  .banner-icon {
+    flex: none;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: rgba(0, 75, 155, 0.1);
+    color: var(--ap-blue);
+    display: flex; align-items: center; justify-content: center;
+  }
+  html.dark .banner-icon { background: rgba(58, 130, 246, 0.2); }
+  .banner-icon svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* الإطار الذي يخفي ما يخرج عن حدوده، مع تلاشٍ ناعم عند الطرفين
+     بدل القطع الحاد لجسم النص */
+  .marquee-viewport {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+    -webkit-mask-image: linear-gradient(to left, transparent, #000 8%, #000 92%, transparent);
+            mask-image: linear-gradient(to left, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  /* الجملة تبدأ ظاهرة كاملةً عند حافة الإطار اليمنى (بجانب الأيقونة
+     مباشرة)، ثم تتحرك مقدمتها جهة اليمين حتى تخرج الجملة كلها تمامًا
+     (translateX(100%) يساوي عرض الجملة نفسها بالضبط، فيضمن خروجها
+     كاملة بصرف النظر عن طولها)، فتُعاد الحلقة فورًا دون أي توقف أو
+     تأخير محسوس قبل ظهورها من جديد. */
+  .marquee-text {
+    display: inline-block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    animation: marquee-scroll 16s linear infinite;
+  }
+  .welcome-banner:hover .marquee-text { animation-play-state: paused; }
+
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(100%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-text { animation: none; }
+    .marquee-viewport { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+  }
+  
+  /* ---------- التخطيط الرئيسي ---------- */
+  main{ max-width:640px; margin: 16px auto 0; padding:0 16px; display:flex; flex-direction:column; gap:16px; }
+  .card{
+    background: var(--card-bg);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow: var(--shadow);
+    transition: background-color 0.3s, border-color 0.3s;
+  }
+  .card h2{
+    margin:0 0 14px; font-size:1.05rem; font-weight:700; color:var(--ap-blue);
+    display:flex; align-items:center; gap:8px;
+  }
+  .card h2 .num{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:24px;height:24px;border-radius:50%;
+    background:rgba(0, 75, 155, 0.1); color:var(--ap-blue);
+    font-size:.75rem; font-weight:900; flex:none; font-family: sans-serif;
+  }
+  html.dark .card h2 .num { background: rgba(58, 130, 246, 0.2); }
+
+  /* ---------- إدخال المبلغ ---------- */
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:10px; }
+  .mode-btn{
+    flex:1; padding:9px; border-radius:10px; border:1px solid var(--line);
+    background:var(--paper); color:var(--ink-soft); font-family:inherit; font-size:.85rem;
+    font-weight:700; cursor:pointer; transition: 0.2s;
+  }
+  .mode-btn.active{ background:var(--ap-blue); color:#fff; border-color:var(--ap-blue); }
+  .amount-row{ display:flex; align-items:stretch; gap:10px; }
+  .amount-input-wrap{ position:relative; flex:1; }
+  
+  input#amount{
+    width:100%; font-size:1.1rem; font-weight:700; font-family:'Cairo',sans-serif;
+    padding:10px 14px 10px 55px;
+    border-radius:10px; border:1px solid var(--line);
+    background: var(--card-bg); color:var(--ink); text-align:right;
+    min-height: 52px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.2s;
+  }
+  input#amount:focus{ outline:none; border-color:var(--ap-blue); box-shadow: 0 0 0 3px rgba(0, 75, 155, 0.1); }
+  
+  .unit-suffix{
+    position:absolute; inset-inline-end:12px; top:50%; transform:translateY(-50%);
+    color:var(--ink-soft); font-size:.85rem; font-weight:700; pointer-events:none;
+  }
+  
+  .mic-btn{
+    flex:none; width:52px; border-radius:10px; border:1px solid var(--line);
+    background:var(--paper); cursor:pointer; display:flex; align-items:center; justify-content:center; transition: 0.2s;
+  }
+  .mic-btn.listening{ background:var(--red); border-color:var(--red); }
+  .mic-btn svg{ width:20px;height:20px; stroke:var(--ap-blue); }
+  .mic-btn.listening svg{ stroke:#fff; }
+  .hint{ font-size:.74rem; color:var(--ink-soft); margin-top:5px; line-height:1.3; }
+  
+  .breakdown{ display:flex; gap:10px; margin-top:8px; }
+  .breakdown .chip{
+    flex:1; background:var(--paper); border-radius:10px; padding:7px 10px; text-align:center;
+    border:1px solid var(--line);
+    display:flex; align-items:baseline; justify-content:center; gap:5px;
+  }
+  .breakdown .chip b{ font-size:.95rem; color:var(--ap-blue); }
+  .breakdown .chip span{ font-size:.72rem; color:var(--ink-soft); }
+
+  /* ---------- الكلمات (Tabs & Box) ---------- */
+  .lang-tabs {
+    display: flex; gap: 4px; margin-bottom: 12px;
+    background: var(--paper); padding: 4px;
+    border-radius: 10px; border: 1px solid var(--line);
+  }
+  .lang-tab {
+    flex: 1; border: none; background: transparent; padding: 8px;
+    border-radius: 8px; font-weight: 700; cursor: pointer;
+    color: var(--ink-soft); transition: 0.2s; font-family: inherit; font-size: 0.85rem;
+  }
+  .lang-tab.active {
+    background: var(--card-bg); color: var(--ap-blue);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--line);
+  }
+  
+  .words-box{
+    background:var(--paper); border:1px dashed var(--ap-yellow); border-radius:10px;
+    padding:10px 14px; font-size:1.1rem; font-weight:700; color:var(--ink); 
+    min-height: 52px; display: flex; align-items: center;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  .words-box.ltr{ font-size:1.05rem; text-align: left; }
+  
+  .actions-row{ display:flex; gap:8px; margin-top:10px; }
+  .icon-btn{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px; border-radius:9px; border:1px solid var(--line); background:var(--card-bg);
+    color:var(--ap-blue); font-family:inherit; font-size:.8rem; font-weight:700; cursor:pointer;
+    transition: 0.2s;
+  }
+  .icon-btn:active{ background:var(--paper-dark); }
+  .icon-btn svg{ width:16px;height:16px; }
+  .copied-flash{ color:var(--green) !important; border-color: var(--green) !important; }
+
+  /* ---------- لوحة مشاركة الصك (خيارات احتياطية) ---------- */
+  .share-fallback{
+    display:none; margin-top:10px; padding:12px; border-radius:10px;
+    border:1px solid var(--line); background:var(--paper-dark);
+  }
+  .share-fallback.open{ display:block; }
+  .share-fallback p{ margin:0 0 10px; font-size:.8rem; color:var(--text-dim,#667); line-height:1.5; }
+  .share-platforms{ display:flex; gap:8px; flex-wrap:wrap; }
+  .share-platform-btn{
+    flex:1; min-width:110px; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px; border-radius:9px; border:1px solid var(--line); background:var(--card-bg);
+    font-family:inherit; font-size:.78rem; font-weight:700; cursor:pointer; color:#fff;
+    text-decoration:none;
+  }
+  .share-platform-btn.wa{ background:#25D366; border-color:#25D366; }
+  .share-platform-btn.tg{ background:#229ED9; border-color:#229ED9; }
+  .share-platform-btn.msg{ background:#00B2FF; border-color:#00B2FF; }
+  .share-platform-btn svg{ width:16px; height:16px; fill:currentColor; }
+
+  /* ---------- المعاينة الواقعية للصك ---------- */
+  .real-check-container {
+    position: relative; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--line); background: #e9e5d9;
+    box-shadow: var(--shadow), inset 0 0 10px rgba(0,0,0,0.1);
+    /* الصك يبقى محصورًا ضمن حشوة البطاقة نفسها (بلا خروج عن الإطار على أي جهاز أو
+       بيئة عرض)، بدل الاعتماد على هامش سالب لدفعه حتى حافة الشاشة — كان ذلك
+       يفترض حشوة صفحة ثابتة (main+card) قد تختلف عن البيئة الفعلية فيتسبب
+       بخروج الصك عن الإطار المرئي. */
+  }
+  .real-check-container img { width: 100%; display: block; user-select: none; pointer-events: none; }
+  .chk-text {
+    position: absolute; font-family: 'Cairo', sans-serif; font-weight: 700;
+    color: #1a1a1a; line-height: 1.2; text-shadow: 0 0 2px rgba(255,255,255,0.5);
+    text-align: right;
+    /* top/right/width/font-size محدَّدة ديناميكيًا من كائن CHECK_LAYOUT في الجافاسكربت
+       (مصدر واحد للحقيقة يُستخدم أيضًا عند تصدير الصورة) بدل تكرارها هنا. */
+  }
+  .chk-amount-num { letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; }
+  /* المبلغ بالحروف على الصك الحقيقي مطبوع على سطرين منفصلين بعرضين مختلفين
+     (السطر الأول أقصر لأنه يشارك مساحته مع "Payez, contre ce chèque")، لذلك
+     نستخدم عنصرين منفصلين أحادِيّي السطر بدل صندوق واحد ملتف، ونتولى تقسيم
+     النص بينهما في الجافاسكربت (نفس منطق القص المستخدم أيضًا عند رسم الصورة). */
+  .chk-words { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chk-beneficiary, .chk-date, .chk-address { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* عنوان مركز البريد يُكتب في خانة "المكان" المطبوعة فعليًا قبل كلمة Le
+     مباشرة (يسار الصورة الفعلي)، فأصبح له سطر مخصّص بدل إخفائه. */
+
+  .check-inputs-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .check-field{ flex: 1; margin-top: 0; }
+  .check-field label{ display:block; font-size:.68rem; color:var(--ink-soft); margin-bottom:3px; }
+  .name-input{
+    width:100%; border:none; border-bottom:1.5px solid var(--ink-soft); background:transparent;
+    font-family:inherit; font-size:.95rem; font-weight:700; padding:4px 0; color:var(--ink);
+    transition: 0.3s;
+  }
+  .name-input:focus{ outline:none; border-color:var(--ap-blue); }
+
+  /* ---------- حاسبة الرسوم ---------- */
+  details.collapsible-card summary{ cursor:pointer; font-weight:700; color:var(--ap-blue); list-style:none; display:flex; align-items:center; justify-content:space-between; }
+  details.collapsible-card summary::-webkit-details-marker{ display:none; }
+  details.collapsible-card summary .chev{ transition:transform .2s; flex-shrink:0; }
+  details.collapsible-card[open] summary .chev{ transform:rotate(180deg); }
+  .fee-body{ margin-top:12px; }
+  .fee-result{ margin-top:10px; background:var(--paper); border-radius:10px; padding:10px 12px; font-size:.88rem; border: 1px solid var(--line); }
+  .fee-note{ font-size:.72rem; color:var(--ink-soft); margin-top:6px; }
+
+  /* ---------- المفضلة ---------- */
+  .fav-body{ margin-top:12px; }
+  .fav-totals{
+    display:none; gap:8px; margin-bottom:12px;
+  }
+  .fav-totals.show{ display:flex; }
+  .fav-total-chip{
+    flex:1; background:rgba(0, 75, 155, 0.08); border-radius:10px; padding:8px 10px;
+    display:flex; flex-direction:column; gap:2px;
+  }
+  .fav-total-chip span{ font-size:.72rem; color:var(--ink-soft); }
+  .fav-total-chip b{ font-size:.95rem; color:var(--ap-blue); }
+  /* يعرض ارتفاع عنصرين تقريبًا مع تلميح بصري ببداية الثالث، وأي عدد إضافي
+     يُتصفّح بالتمرير داخل نفس الإطار بدل تمدّد البطاقة إلى ما لا نهاية. */
+  .fav-list{
+    display:flex; flex-direction:column; gap:10px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-inline-end: 6px;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 75, 155, 0.35) transparent;
+  }
+  .fav-list::-webkit-scrollbar{ width:6px; }
+  .fav-list::-webkit-scrollbar-track{ background:transparent; margin:2px 0; }
+  .fav-list::-webkit-scrollbar-thumb{ background:rgba(0, 75, 155, 0.35); border-radius:999px; }
+  .fav-list::-webkit-scrollbar-thumb:hover{ background:rgba(0, 75, 155, 0.55); }
+  html.dark .fav-list{ scrollbar-color: rgba(58, 130, 246, 0.4) transparent; }
+  html.dark .fav-list::-webkit-scrollbar-thumb{ background:rgba(58, 130, 246, 0.4); }
+  html.dark .fav-list::-webkit-scrollbar-thumb:hover{ background:rgba(58, 130, 246, 0.6); }
+  .fav-item{
+    display:flex; flex-direction:column; gap:10px;
+    background:var(--paper); border-radius:12px; padding:12px 14px; border:1px solid var(--line);
+    flex: none;
+  }
+  .fav-item-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .fav-item-label{
+    font-weight:800; color:var(--ink); font-size:.95rem;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .fav-item-del{
+    flex:none; background:none; border:none; color:var(--ink-soft); cursor:pointer;
+    padding:4px; line-height:1; font-size:.95rem; transition:color .15s;
+  }
+  .fav-item-del:hover{ color:var(--red); }
+
+  .fav-item-use{ display:block; width:100%; background:none; border:none; padding:0; margin:0; font-family:inherit; cursor:pointer; text-align:right; }
+  /* ترتيب الحقول: إجمالي السحوبات، إجمالي الرسوم، الوقت، التاريخ —
+     شبكة 2×2 تُقرأ يمينًا فيسارًا ثم من الأعلى للأسفل (تطابق ترتيب DOM
+     تلقائيًا في سياق RTL). */
+  .fav-item-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .fav-field{
+    background:rgba(0, 75, 155, 0.06); border-radius:8px; padding:7px 10px;
+    display:flex; flex-direction:column; gap:2px; min-width:0;
+  }
+  html.dark .fav-field{ background:rgba(58, 130, 246, 0.1); }
+  .fav-field span{ font-size:.68rem; color:var(--ink-soft); }
+  .fav-field b{ font-size:.85rem; font-weight:800; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fav-field.withdraw b{ color:var(--ap-blue); }
+  .fav-field.fee b{ color:var(--red); }
+  
+  .fav-add-row{ display:flex; gap:8px; margin-top:12px; }
+  .fav-add-row input{
+    flex:1; padding:9px 10px; border-radius:8px; border:1px solid var(--line); font-family:inherit; font-size:.85rem;
+    background:var(--card-bg); color:var(--ink);
+  }
+  .fav-add-row button{
+    background:var(--ap-blue); color:#fff; border:none; border-radius:8px; padding:0 16px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .empty-note{ font-size:.82rem; color:var(--ink-soft); text-align:center; padding:8px 0; }
+
+  /* ---------- محول CCP ↔ RIP ---------- */
+  .ccprip-row{ display:flex; align-items:flex-end; gap:8px; }
+  .ccprip-row .check-field{ min-width:0; }
+  .swap-btn{
+    flex:none; width:40px; height:40px; border-radius:50%;
+    border:1px solid var(--line); background:var(--paper); color:var(--ap-blue);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    margin-bottom:6px; transition: 0.2s;
+  }
+  .swap-btn:active{ transform:scale(0.9); background:var(--paper-dark); }
+  .swap-btn svg{ width:19px;height:19px; }
+  .swap-btn.copied-flash{ border-color:var(--green); color:var(--green); background:var(--paper-dark); }
+  .format-note{ font-size:.7rem; margin-top:4px; min-height:1.1em; color:var(--ink-soft); line-height:1.3; }
+  .format-note.ok{ color:var(--green); }
+  .format-note.warn{ color:#B45309; }
+  html.dark .format-note.warn{ color:#FBBF24; }
+  .format-note.err{ color:var(--red); }
+  .contact-note{ font-size:.72rem; color:var(--ink-soft); margin:0 0 12px; line-height:1.5; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:9px 11px; }
+
+  /* ---------- تبديل العرض بين الصفحة الرئيسية وصفحة CCP/RIP (بلا تنقل بين ملفات) ---------- */
+  .view-wrap{ display:flex; flex-direction:column; gap:16px; }
+  .rip-page-header{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .back-btn{
+    flex:none; display:flex; align-items:center; gap:4px;
+    background:var(--paper); border:1px solid var(--line); border-radius:9px;
+    padding:7px 10px; color:var(--ap-blue); font-family:inherit; font-size:.8rem; font-weight:700; cursor:pointer;
+  }
+  .back-btn svg{ width:16px; height:16px; }
+  .back-btn:active{ background:var(--paper-dark); }
+
+  footer{ max-width:640px; margin:18px auto 0; padding:0 20px; text-align:center; }
+  footer p{ font-size:.74rem; color:var(--ink-soft); }
+  .badge-offline{
+    display:inline-flex; align-items:center; gap:6px; background:var(--green); color:#fff;
+    font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:20px; margin-top:2px;
+  }
+  .badge-offline svg{ width:12px;height:12px; stroke: #fff; }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+
+  /* نص مخفٍ بصريًا لكن متاح لقارئات الشاشة (تحسين إمكانية الوصول) */
+  .sr-only{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
