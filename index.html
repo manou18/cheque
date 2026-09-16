@@ -233,12 +233,13 @@
 
   /* ---------- المعاينة الواقعية للصك ---------- */
   .real-check-container {
-    position: relative; border-radius: 8px; overflow: hidden;
-    border: 1px solid var(--line); background: #e9e5d9; box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-    /* تكبير المعاينة عبر "الخروج" من حشوة البطاقة (18px) وحشوة main (16px) معًا،
-       لتمتد الصورة حتى حافة الشاشة على الجوال بدل أن تبقى محصورة داخل البطاقة —
-       أكبر حجم ممكن دون التأثير على بقية عناصر الصفحة. */
-    margin: 0 -34px;
+    position: relative; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--line); background: #e9e5d9;
+    box-shadow: var(--shadow), inset 0 0 10px rgba(0,0,0,0.1);
+    /* الصك يبقى محصورًا ضمن حشوة البطاقة نفسها (بلا خروج عن الإطار على أي جهاز أو
+       بيئة عرض)، بدل الاعتماد على هامش سالب لدفعه حتى حافة الشاشة — كان ذلك
+       يفترض حشوة صفحة ثابتة (main+card) قد تختلف عن البيئة الفعلية فيتسبب
+       بخروج الصك عن الإطار المرئي. */
   }
   .real-check-container img { width: 100%; display: block; user-select: none; pointer-events: none; }
   .chk-text {
@@ -254,10 +255,9 @@
      نستخدم عنصرين منفصلين أحادِيّي السطر بدل صندوق واحد ملتف، ونتولى تقسيم
      النص بينهما في الجافاسكربت (نفس منطق القص المستخدم أيضًا عند رسم الصورة). */
   .chk-words { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .chk-beneficiary, .chk-date { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  /* لا يوجد سطر مخصص لعنوان المستفيد في نموذج صك بريد الجزائر الحقيقي،
-     لذلك لا نعرضه فوق الصك؛ يبقى الحقل متاحًا كملاحظة داخلية فقط. */
-  .chk-address { display: none; }
+  .chk-beneficiary, .chk-date, .chk-address { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* عنوان مركز البريد يُكتب في خانة "المكان" المطبوعة فعليًا قبل كلمة Le
+     مباشرة (يسار الصورة الفعلي)، فأصبح له سطر مخصّص بدل إخفائه. */
 
   .check-inputs-row { display: flex; gap: 12px; margin-bottom: 16px; }
   .check-field{ flex: 1; margin-top: 0; }
@@ -409,8 +409,8 @@
         <input class="name-input" id="beneficiaryInput" placeholder="مثال: سونلغاز" maxlength="45">
       </div>
       <div class="check-field">
-        <label>ملاحظة داخلية (لا تظهر على الصك)</label>
-        <input class="name-input" id="addressInput" placeholder="مثال: عنوان المستفيد للأرشيف" maxlength="80">
+        <label>عنوان مركز البريد</label>
+        <input class="name-input" id="addressInput" placeholder="مثال: الجزائر" maxlength="40">
       </div>
     </div>
 
@@ -631,13 +631,16 @@
   const CHECK_LAYOUT = {
     // القيم مُعايَرة يدويًا بقياس بكسلات صورة cheque-ccp.jpg (3030×1332) لتقع الكتابة
     // فوق الخطوط المطبوعة فعليًا بدل الارتفاع عنها أو التداخل مع "إدفعوا مقابل هذا الصك" / "لأمر".
-    amountNum:   { top: 7.1,  right: 5.2, width: 22,   fontPct: 0.017 },
+    amountNum:   { top: 7.1,  right: 5.2, width: 22,   fontPct: 0.021 },
     // السطر الأول لكتابة المبلغ بالحروف يشارك مساحته مع "Payez, contre ce chèque"
     // فمساحته المتاحة أضيق من السطر الثاني (الفارغ بالكامل تحته)، لذلك عرضان مختلفان.
-    words1:      { top: 21.3, right: 30,  width: 47,   fontPct: 0.021 },
-    words2:      { top: 29.1, right: 2,   width: 95,   fontPct: 0.021 },
-    beneficiary: { top: 37.3, right: 5.6, width: 80,   fontPct: 0.022 },
-    date:        { top: 45.6, right: 7.9, width: 12.5, fontPct: 0.018 }
+    words1:      { top: 21.3, right: 30,  width: 47,   fontPct: 0.025 },
+    words2:      { top: 29.1, right: 2,   width: 95,   fontPct: 0.025 },
+    beneficiary: { top: 37.3, right: 5.6, width: 80,   fontPct: 0.026 },
+    // خانة "المكان" الفارغة الواقعة قبل كلمة Le مباشرة (يسار الصورة)، تُستخدم
+    // تقليديًا لاسم المدينة/عنوان مركز الإصدار قبل "le [التاريخ]".
+    address:     { top: 45.6, right: 24.3, width: 12.5, fontPct: 0.021 },
+    date:        { top: 45.6, right: 7.9, width: 12.5, fontPct: 0.021 }
   };
 
   function applyCheckLayout(){
@@ -645,7 +648,7 @@
     const containerWidth = container.clientWidth || 400;
     Object.entries({
       amountNum: chkAmountNum, words1: chkWords, words2: chkWords2,
-      beneficiary: chkBeneficiary, date: chkDate
+      beneficiary: chkBeneficiary, address: chkAddress, date: chkDate
     }).forEach(([key, el])=>{
       const pos = CHECK_LAYOUT[key];
       el.style.top = pos.top + '%';
@@ -869,8 +872,9 @@
     drawField(chkWords.textContent, CHECK_LAYOUT.words1);
     if(chkWords2.textContent) drawField(chkWords2.textContent, CHECK_LAYOUT.words2);
     drawField(chkBeneficiary.textContent, CHECK_LAYOUT.beneficiary);
+    drawField(chkAddress.textContent, CHECK_LAYOUT.address);
     drawField(chkDate.textContent, CHECK_LAYOUT.date);
-    // ملاحظة: لا يُرسم العنوان على الصورة لعدم وجود سطر مخصص له في نموذج الصك الحقيقي.
+    // ملاحظة: عنوان مركز البريد يُرسم في خانة "المكان" قبل Le مباشرة (انظر أعلاه).
 
     try {
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
