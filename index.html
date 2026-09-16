@@ -795,34 +795,241 @@
   const today = new Date();
   chkDate.textContent = today.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
 
-  /* ============ الإدخال الصوتي ============ */
+  /* ============ الإدخال الصوتي ============
+     ملاحظات توافق المتصفحات:
+     - يتطلب Web Speech API سياقًا آمنًا (HTTPS أو localhost)، وإلا فبعض المتصفحات
+       (خصوصًا Chrome على الموبايل) ترفض حتى إظهار طلب إذن الميكروفون بصمت.
+     - Firefox (سطح المكتب والموبايل) لا يدعم SpeechRecognition أصلًا حتى الآن.
+     - Safari يدعمه عبر webkitSpeechRecognition لكنه أكثر حساسية لحالة إذن
+       الميكروفون، ولذلك نطلب الإذن صراحةً عبر getUserMedia أولاً لتوحيد السلوك
+       ولتمييز "رفض الإذن" عن "لا يوجد ميكروفون" عن "غير مدعوم" بوضوح للمستخدم.
+     - محرّكات التعرف على العربية قد تُرجع النتيجة بأرقام هندية (١٢٣) أو بأرقام
+       مكتوبة بالحروف ("خمسة آلاف") بدل الأرقام العادية؛ لذلك نطبّع الأرقام
+       الهندية إلى لاتينية، ونضيف مُحلّلًا للأرقام المكتوبة بالحروف كخطة بديلة. */
   const micBtn = document.getElementById('micBtn');
   const micHint = document.getElementById('micHint');
+  const defaultMicHint = micHint.textContent;
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(SpeechRec){
-    const rec = new SpeechRec();
-    rec.lang = 'ar-DZ'; rec.interimResults = false; rec.maxAlternatives = 1;
-    let listening = false;
-    micBtn.addEventListener('click', ()=>{
-      if(listening){ rec.stop(); return; }
-      try{ rec.start(); }catch(e){}
+  const isSecureCtx = window.isSecureContext ||
+    location.protocol === 'https:' ||
+    location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+  // يحوّل الأرقام الهندية (٠١٢٣٤٥٦٧٨٩) والفارسية إلى أرقام لاتينية عادية
+  function normalizeDigits(str){
+    return str.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, d =>
+      String(d.charCodeAt(0) & 0xf)
+    );
+  }
+
+  // محلّل للأرقام العربية المكتوبة بالحروف (مفرد/جمع/مثنى، مع واو الربط
+  // منفصلة أو ملتصقة)، لأن محرّكات التعرف الصوتي على العربية غالبًا تُرجع
+  // الأرقام مكتوبة بالحروف بدل الأرقام العادية.
+  // أمثلة: "خمسة آلاف ومئتين" -> 5200 ، "عشرون فاصلة خمسة" -> 20.5
+  const _numUnits = {'صفر':0,'واحد':1,'واحده':1,'احد':1,'اثنان':2,'اثنين':2,'اثنتان':2,'اثنتين':2,
+    'ثلاثه':3,'ثلاث':3,'اربعه':4,'اربع':4,'خمسه':5,'خمس':5,'سته':6,'ست':6,
+    'سبعه':7,'سبع':7,'ثمانيه':8,'ثمان':8,'ثمانى':8,'تسعه':9,'تسع':9};
+  const _numTeens = {'عشره':10,'عشر':10,'احدعشر':11,'حداشر':11,'اثناعشر':12,'اثنيعشر':12,
+    'ثلاثهعشر':13,'اربعهعشر':14,'خمسهعشر':15,'سنهعشر':16,'سنعشر':16,'سبعهعشر':17,
+    'ثمانيهعشر':18,'تسعهعشر':19};
+  const _numTens = {'عشرون':20,'عشرين':20,'ثلاثون':30,'ثلاثين':30,'اربعون':40,'اربعين':40,
+    'خمسون':50,'خمسين':50,'ستون':60,'ستين':60,'سبعون':70,'سبعين':70,
+    'ثمانون':80,'ثمانين':80,'تسعون':90,'تسعين':90};
+  const _numHundreds = {'مئه':100,'مائه':100,'مئتان':200,'مئتين':200,'مائتان':200,'مائتين':200,
+    'ثلاثمئه':300,'ثلاثمائه':300,'اربعمئه':400,'اربعمائه':400,'خمسمئه':500,'خمسمائه':500,
+    'ستمئه':600,'ستمائه':600,'سبعمئه':700,'سبعمائه':700,'ثمانمئه':800,'ثمانمائه':800,
+    'تسعمئه':900,'تسعمائه':900};
+  const _numThousand = new Set(['الف','آلاف','الاف']);
+  const _numThousandDual = new Set(['الفين','الفان']);
+  const _numMillion = new Set(['مليون','ملايين']);
+  const _numMillionDual = new Set(['مليونين','مليونان']);
+  const _numDecimalMarkers = new Set(['فاصله','نقطه']);
+
+  function _tokenizeArabicNumber(text){
+    const clean = text
+      .replace(/[أإآ]/g,'ا')
+      .replace(/ة/g,'ه')
+      .replace(/[^\u0600-\u06FF\s]/g,' ');
+    return clean.split(/\s+/).filter(Boolean).map(tok=>{
+      // نزيل واو الربط الملتصقة بالكلمة (مثل "وعشرون")
+      if(tok.length > 2 && tok[0] === 'و'){
+        const stripped = tok.slice(1);
+        if(_numUnits[stripped]!==undefined || _numTens[stripped]!==undefined || _numHundreds[stripped]!==undefined ||
+           _numThousand.has(stripped) || _numThousandDual.has(stripped) || _numMillion.has(stripped) ||
+           _numMillionDual.has(stripped) || _numDecimalMarkers.has(stripped)){
+          return stripped;
+        }
+      }
+      return tok;
     });
-    rec.addEventListener('start', ()=>{ listening=true; micBtn.classList.add('listening'); micHint.textContent='...أستمع الآن'; });
-    rec.addEventListener('end', ()=>{ listening=false; micBtn.classList.remove('listening'); micHint.textContent='🎙️ انطق الرقم أو اكتبه مباشرة'; });
-    rec.addEventListener('result', (e)=>{
-      const transcript = e.results[0][0].transcript;
-      const digits = transcript.replace(/[^\d.,]/g,'');
-      if(digits){
-        amountInput.value = digits.replace(',', '.'); recalc();
-        micHint.textContent = 'تم التعرف على: «'+transcript+'» — تحقّق من الرقم قبل الاستعمال.';
+  }
+
+  function _parseSmallGroup(tokens){
+    let value = 0, matched = false;
+    for(let i=0;i<tokens.length;i++){
+      const t = tokens[i];
+      const two = t + (tokens[i+1] || '');
+      if(_numTeens[two] !== undefined){ value += _numTeens[two]; matched = true; i++; continue; }
+      if(_numHundreds[t] !== undefined){ value += _numHundreds[t]; matched = true; continue; }
+      if(_numTeens[t] !== undefined){ value += _numTeens[t]; matched = true; continue; }
+      if(_numTens[t] !== undefined){ value += _numTens[t]; matched = true; continue; }
+      if(_numUnits[t] !== undefined){ value += _numUnits[t]; matched = true; continue; }
+    }
+    return matched ? value : NaN;
+  }
+
+  function _parseIntPhrase(tokens){
+    if(!tokens.length) return NaN;
+    let total = 0, group = [], matchedAny = false;
+    for(let i=0;i<tokens.length;i++){
+      const t = tokens[i];
+      if(_numMillion.has(t) || _numMillionDual.has(t)){
+        const groupVal = _parseSmallGroup(group);
+        const mult = _numMillionDual.has(t) ? 2 : (isNaN(groupVal) ? 1 : groupVal);
+        total += mult * 1000000; group = []; matchedAny = true; continue;
+      }
+      if(_numThousand.has(t) || _numThousandDual.has(t)){
+        const groupVal = _parseSmallGroup(group);
+        const mult = _numThousandDual.has(t) ? 2 : (isNaN(groupVal) ? 1 : groupVal);
+        total += mult * 1000; group = []; matchedAny = true; continue;
+      }
+      group.push(t);
+    }
+    const rest = _parseSmallGroup(group);
+    if(!isNaN(rest)){ total += rest; matchedAny = true; }
+    return matchedAny ? total : NaN;
+  }
+
+  function wordsToNumber(text){
+    const tokens = _tokenizeArabicNumber(text);
+    const markerIdx = tokens.findIndex(t => _numDecimalMarkers.has(t));
+    if(markerIdx === -1) return _parseIntPhrase(tokens);
+    const intPart = _parseIntPhrase(tokens.slice(0, markerIdx));
+    const fracVal = _parseIntPhrase(tokens.slice(markerIdx + 1));
+    if(isNaN(intPart)) return NaN;
+    if(isNaN(fracVal)) return intPart;
+    return parseFloat(intPart + '.' + fracVal);
+  }
+
+  function extractAmount(rawTranscript){
+    const transcript = normalizeDigits(rawTranscript);
+    const digits = transcript.replace(/[^\d.,]/g,'');
+    if(digits) return digits.replace(',', '.');
+    const fromWords = wordsToNumber(rawTranscript);
+    if(!isNaN(fromWords)) return String(fromWords);
+    return null;
+  }
+
+  function setMicUnsupported(msg){
+    micBtn.classList.add('mic-unsupported');
+    micBtn.style.opacity = '0.4';
+    micHint.textContent = msg;
+    micBtn.onclick = ()=>{ micHint.textContent = msg; };
+  }
+
+  if(!SpeechRec){
+    setMicUnsupported('الإدخال الصوتي غير مدعوم في هذا المتصفح (جرّب Chrome أو Edge أو Safari) — يمكنك كتابة المبلغ يدويًا.');
+  } else if(!isSecureCtx){
+    setMicUnsupported('الإدخال الصوتي يحتاج اتصالًا آمنًا (HTTPS) ولا يعمل عند فتح الملف مباشرة من القرص — افتح الصفحة عبر رابط GitHub Pages أو خادم محلي.');
+  } else {
+    const rec = new SpeechRec();
+    const langChain = ['ar-DZ', 'ar-SA', 'ar'];
+    let langIdx = 0;
+    rec.lang = langChain[0];
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    let listening = false;
+    let permissionAsked = false;
+    let safetyTimer = null;
+
+    function stopSafetyTimer(){ if(safetyTimer){ clearTimeout(safetyTimer); safetyTimer = null; } }
+
+    function startRecognition(){
+      try{
+        rec.lang = langChain[langIdx];
+        rec.start();
+      }catch(e){
+        listening = false;
+        micBtn.classList.remove('listening');
+        micHint.textContent = 'تعذّر بدء الاستماع، حاول مرة أخرى.';
+      }
+    }
+
+    micBtn.addEventListener('click', async ()=>{
+      if(listening){ rec.stop(); return; }
+      // نطلب إذن الميكروفون صراحةً أولاً (يوحّد السلوك بين Chrome و Safari
+      // ويسمح بإظهار رسالة رفض واضحة بدل خطأ صامت من SpeechRecognition نفسه)
+      if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && !permissionAsked){
+        try{
+          const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+          stream.getTracks().forEach(t => t.stop());
+          permissionAsked = true;
+          langIdx = 0;
+          startRecognition();
+        }catch(permErr){
+          if(permErr && (permErr.name === 'NotAllowedError' || permErr.name === 'SecurityError')){
+            micHint.textContent = 'تم رفض إذن الميكروفون — فعّله من إعدادات المتصفح لهذا الموقع ثم أعد المحاولة.';
+          } else if(permErr && permErr.name === 'NotFoundError'){
+            micHint.textContent = 'لم يتم العثور على ميكروفون متصل بهذا الجهاز.';
+          } else {
+            micHint.textContent = 'تعذّر الوصول إلى الميكروفون، تحقّق من إعدادات الجهاز والمتصفح.';
+          }
+        }
       } else {
-        micHint.textContent = 'لم أتعرف على رقم في: «'+transcript+'» — جرّب الكتابة يدويًا.';
+        langIdx = 0;
+        startRecognition();
       }
     });
-    rec.addEventListener('error', ()=>{ micHint.textContent='تعذّر الوصول للميكروفون، تحقّق من الأذونات والاتصال بالإنترنت.'; });
-  } else {
-    micBtn.style.opacity = '0.4';
-    micBtn.addEventListener('click', ()=>{ micHint.textContent='الإدخال الصوتي غير مدعوم في هذا المتصفح.'; });
+
+    rec.addEventListener('start', ()=>{
+      listening = true;
+      micBtn.classList.add('listening');
+      micHint.textContent = '...أستمع الآن';
+      stopSafetyTimer();
+      // بعض متصفحات الموبايل (خصوصًا Safari/iOS) قد لا تُصدر حدث "end" بشكل
+      // موثوق؛ مؤقّت أمان يعيد الزر لحالته الطبيعية إن لم يحدث شيء لمدة طويلة
+      safetyTimer = setTimeout(()=>{ try{ rec.stop(); }catch(e){} }, 15000);
+    });
+
+    rec.addEventListener('end', ()=>{
+      listening = false;
+      micBtn.classList.remove('listening');
+      stopSafetyTimer();
+      if(micHint.textContent === '...أستمع الآن'){ micHint.textContent = defaultMicHint; }
+    });
+
+    rec.addEventListener('result', (e)=>{
+      const rawTranscript = e.results[0][0].transcript;
+      const amount = extractAmount(rawTranscript);
+      if(amount !== null){
+        amountInput.value = amount; recalc();
+        micHint.textContent = 'تم التعرف على: «'+rawTranscript+'» — تحقّق من الرقم قبل الاستعمال.';
+      } else {
+        micHint.textContent = 'لم أتعرف على رقم في: «'+rawTranscript+'» — جرّب الكتابة يدويًا.';
+      }
+    });
+
+    rec.addEventListener('error', (e)=>{
+      stopSafetyTimer();
+      const code = e && e.error;
+      if(code === 'not-allowed' || code === 'service-not-allowed'){
+        micHint.textContent = 'تم رفض إذن الميكروفون — فعّله من إعدادات المتصفح لهذا الموقع ثم أعد المحاولة.';
+      } else if(code === 'no-speech'){
+        micHint.textContent = 'لم أسمع أي كلام، حاول التحدث بعد الضغط على الزر مباشرة.';
+      } else if(code === 'audio-capture'){
+        micHint.textContent = 'لم يتم العثور على ميكروفون صالح للاستخدام.';
+      } else if(code === 'network'){
+        micHint.textContent = 'تعذّر الوصول للخدمة، تحقّق من اتصالك بالإنترنت.';
+      } else if(code === 'language-not-supported' && langIdx < langChain.length - 1){
+        langIdx++;
+        micHint.textContent = 'جارٍ إعادة المحاولة بضبط لغة مختلف...';
+        startRecognition();
+        return;
+      } else {
+        micHint.textContent = 'تعذّر الوصول للميكروفون، تحقّق من الأذونات والاتصال بالإنترنت.';
+      }
+      listening = false;
+      micBtn.classList.remove('listening');
+    });
   }
 
 
