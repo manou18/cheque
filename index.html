@@ -153,7 +153,7 @@
   html.dark .card h2 .num { background: rgba(58, 130, 246, 0.2); }
 
   /* ---------- إدخال المبلغ ---------- */
-  .mode-toggle{ display:flex; gap:8px; margin-bottom:12px; }
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:10px; }
   .mode-btn{
     flex:1; padding:9px; border-radius:10px; border:1px solid var(--line);
     background:var(--paper); color:var(--ink-soft); font-family:inherit; font-size:.85rem;
@@ -185,14 +185,15 @@
   .mic-btn.listening{ background:var(--red); border-color:var(--red); }
   .mic-btn svg{ width:20px;height:20px; stroke:var(--ap-blue); }
   .mic-btn.listening svg{ stroke:#fff; }
-  .hint{ font-size:.78rem; color:var(--ink-soft); margin-top:8px; }
+  .hint{ font-size:.74rem; color:var(--ink-soft); margin-top:5px; line-height:1.3; }
   
-  .breakdown{ display:flex; gap:10px; margin-top:12px; }
+  .breakdown{ display:flex; gap:10px; margin-top:8px; }
   .breakdown .chip{
-    flex:1; background:var(--paper); border-radius:10px; padding:8px 10px; text-align:center;
+    flex:1; background:var(--paper); border-radius:10px; padding:7px 10px; text-align:center;
     border:1px solid var(--line);
+    display:flex; align-items:baseline; justify-content:center; gap:5px;
   }
-  .breakdown .chip b{ display:block; font-size:1.1rem; color:var(--ap-blue); }
+  .breakdown .chip b{ font-size:.95rem; color:var(--ap-blue); }
   .breakdown .chip span{ font-size:.72rem; color:var(--ink-soft); }
 
   /* ---------- الكلمات (Tabs & Box) ---------- */
@@ -248,7 +249,11 @@
        (مصدر واحد للحقيقة يُستخدم أيضًا عند تصدير الصورة) بدل تكرارها هنا. */
   }
   .chk-amount-num { letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; }
-  .chk-words { line-height: 1.25; }
+  /* المبلغ بالحروف على الصك الحقيقي مطبوع على سطرين منفصلين بعرضين مختلفين
+     (السطر الأول أقصر لأنه يشارك مساحته مع "Payez, contre ce chèque")، لذلك
+     نستخدم عنصرين منفصلين أحادِيّي السطر بدل صندوق واحد ملتف، ونتولى تقسيم
+     النص بينهما في الجافاسكربت (نفس منطق القص المستخدم أيضًا عند رسم الصورة). */
+  .chk-words { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chk-beneficiary, .chk-date { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* لا يوجد سطر مخصص لعنوان المستفيد في نموذج صك بريد الجزائر الحقيقي،
      لذلك لا نعرضه فوق الصك؛ يبقى الحقل متاحًا كملاحظة داخلية فقط. */
@@ -361,7 +366,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
       </button>
     </div>
-    <p class="hint" id="micHint">اضغط على الميكروفون وانطق الرقم (يحتاج إنترنت)، أو اكتبه مباشرة.</p>
+    <p class="hint" id="micHint">🎙️ انطق الرقم أو اكتبه مباشرة</p>
     <div class="breakdown">
       <div class="chip"><b id="chipDinar">0</b><span>دينار جزائري</span></div>
       <div class="chip"><b id="chipCentime">00</b><span>سنتيم</span></div>
@@ -414,6 +419,7 @@
       
       <div class="chk-text chk-amount-num" id="chkAmountNum">0,00</div>
       <div class="chk-text chk-words" id="chkWords">صفر دينار جزائري</div>
+      <div class="chk-text chk-words chk-words2" id="chkWords2"></div>
       <div class="chk-text chk-beneficiary" id="chkBeneficiary"></div>
       <div class="chk-text chk-address" id="chkAddress"></div>
       <div class="chk-text chk-date" id="chkDate"></div>
@@ -623,19 +629,22 @@
      كما كان سابقًا (وهو ما كان يسبب اختلاف المعاينة عن الصورة المصدَّرة).
      لإعادة المعايرة عند تغيير صورة الصك: عدّل top/right/width هنا فقط. */
   const CHECK_LAYOUT = {
-    amountNum:   { top: 7,  right: 7,  width: 22, fontPct: 0.017 },
-    // سطرا "المبلغ بالحروف" في النموذج الحقيقي سطران فعليًا (بينهما مسافة)
-    // لذلك نسمح بالتفاف النص على سطرين ضمن هذا النطاق بدل إجباره سطرًا واحدًا
-    words:       { top: 19, right: 16, width: 68, fontPct: 0.021 },
-    beneficiary: { top: 39, right: 6,  width: 76, fontPct: 0.023 },
-    date:        { top: 46, right: 6,  width: 16, fontPct: 0.019 }
+    // القيم مُعايَرة يدويًا بقياس بكسلات صورة cheque-ccp.jpg (3030×1332) لتقع الكتابة
+    // فوق الخطوط المطبوعة فعليًا بدل الارتفاع عنها أو التداخل مع "إدفعوا مقابل هذا الصك" / "لأمر".
+    amountNum:   { top: 7.1,  right: 5.2, width: 22,   fontPct: 0.017 },
+    // السطر الأول لكتابة المبلغ بالحروف يشارك مساحته مع "Payez, contre ce chèque"
+    // فمساحته المتاحة أضيق من السطر الثاني (الفارغ بالكامل تحته)، لذلك عرضان مختلفان.
+    words1:      { top: 21.3, right: 30,  width: 47,   fontPct: 0.021 },
+    words2:      { top: 29.1, right: 2,   width: 95,   fontPct: 0.021 },
+    beneficiary: { top: 37.3, right: 5.6, width: 80,   fontPct: 0.022 },
+    date:        { top: 45.6, right: 7.9, width: 12.5, fontPct: 0.018 }
   };
 
   function applyCheckLayout(){
     const container = document.getElementById('checkMockup');
     const containerWidth = container.clientWidth || 400;
     Object.entries({
-      amountNum: chkAmountNum, words: chkWords,
+      amountNum: chkAmountNum, words1: chkWords, words2: chkWords2,
       beneficiary: chkBeneficiary, date: chkDate
     }).forEach(([key, el])=>{
       const pos = CHECK_LAYOUT[key];
@@ -662,6 +671,7 @@
   
   const chkAmountNum = document.getElementById('chkAmountNum');
   const chkWords = document.getElementById('chkWords');
+  const chkWords2 = document.getElementById('chkWords2');
   const chkBeneficiary = document.getElementById('chkBeneficiary');
   const chkAddress = document.getElementById('chkAddress');
   const chkDate = document.getElementById('chkDate');
@@ -705,6 +715,26 @@
     return parseFloat(intPart + '.' + fracPart);
   }
 
+  /* يقسّم نص "المبلغ بالحروف" على سطرَي الصك الحقيقيَّين. السطر الأول أضيق
+     (يشارك مساحته مع "Payez, contre ce chèque")، لذلك نملأه بأكبر عدد كلمات
+     يسع عرضه الفعلي، والباقي يذهب للسطر الثاني الأوسع تحته — بنفس منطق
+     "measureText" المستخدم أيضًا عند تصدير الصك كصورة (مصدر واحد للحقيقة). */
+  const _measureCanvas = document.createElement('canvas');
+  const _measureCtx = _measureCanvas.getContext('2d');
+  function splitCheckWords(text){
+    const words = text.split(' ');
+    const cs1 = getComputedStyle(chkWords);
+    _measureCtx.font = cs1.fontWeight + ' ' + cs1.fontSize + ' ' + cs1.fontFamily;
+    const max1 = chkWords.clientWidth;
+    let line1 = '', i = 0;
+    for(; i < words.length; i++){
+      const test = line1 ? line1 + ' ' + words[i] : words[i];
+      if(line1 && _measureCtx.measureText(test).width > max1) break;
+      line1 = test;
+    }
+    return { line1, line2: words.slice(i).join(' ') };
+  }
+
   /* حساب وتحديث الواجهة */
   function recalc(){
     const val = parseAmountInput(amountInput.value);
@@ -732,7 +762,9 @@
     
     updateWordsDisplay();
     
-    chkWords.textContent = generatedWords.ar;
+    const wordsSplit = splitCheckWords(generatedWords.ar);
+    chkWords.textContent = wordsSplit.line1;
+    chkWords2.textContent = wordsSplit.line2;
     chkAmountNum.textContent = fmtDZD(current.dinars, current.centimes);
     chkBeneficiary.textContent = beneficiaryInput.value.trim();
     chkAddress.textContent = addressInput.value.trim();
@@ -773,7 +805,7 @@
       try{ rec.start(); }catch(e){}
     });
     rec.addEventListener('start', ()=>{ listening=true; micBtn.classList.add('listening'); micHint.textContent='...أستمع الآن'; });
-    rec.addEventListener('end', ()=>{ listening=false; micBtn.classList.remove('listening'); micHint.textContent='اضغط على الميكروفون وانطق الرقم (يحتاج إنترنت)، أو اكتبه مباشرة.'; });
+    rec.addEventListener('end', ()=>{ listening=false; micBtn.classList.remove('listening'); micHint.textContent='🎙️ انطق الرقم أو اكتبه مباشرة'; });
     rec.addEventListener('result', (e)=>{
       const transcript = e.results[0][0].transcript;
       const digits = transcript.replace(/[^\d.,]/g,'');
@@ -821,31 +853,21 @@
     ctx.fillStyle = '#1C2B45';
     ctx.textAlign = 'right';
 
-    // نفس نسب CHECK_LAYOUT المستخدمة في المعاينة الحية بالضبط (مصدر واحد للحقيقة)
-    // يدعم "wrap" لالتفاف النص على سطرين تمامًا كما يحدث في المعاينة الحية،
-    // بدل رسمه كسطر واحد طويل قد يخرج عن حدود الصك (كان هذا خللاً محتملاً).
-    function drawField(text, layout, wrap){
+    // نفس نسب CHECK_LAYOUT المستخدمة في المعاينة الحية بالضبط (مصدر واحد للحقيقة).
+    // المبلغ بالحروف مقسَّم مسبقًا على سطرين (chkWords/chkWords2) بنفس منطق
+    // splitCheckWords المستخدم في المعاينة الحية، فنرسم كل سطر في مكانه الحقيقي مباشرة
+    // بدل إعادة الالتفاف هنا بعرض واحد (وهو ما كان يسبب تداخل السطر الأول مع "Payez...").
+    function drawField(text, layout){
       const fontSize = w * layout.fontPct;
       ctx.font = 'bold ' + fontSize + 'px Cairo, Arial';
       const x = w * (1 - layout.right / 100);
-      const maxWidth = w * (layout.width / 100);
       const baseY = h * (layout.top / 100) + fontSize;
-      if(!wrap){ ctx.fillText(text, x, baseY); return; }
-      const lineHeight = fontSize * 1.25;
-      const words = text.split(' ');
-      const lines = [];
-      let line = '';
-      for(const word of words){
-        const test = line ? line + ' ' + word : word;
-        if(line && ctx.measureText(test).width > maxWidth){ lines.push(line); line = word; }
-        else line = test;
-      }
-      if(line) lines.push(line);
-      lines.forEach((l, i) => ctx.fillText(l, x, baseY + i * lineHeight));
+      ctx.fillText(text, x, baseY);
     }
 
     drawField(chkAmountNum.textContent, CHECK_LAYOUT.amountNum);
-    drawField(chkWords.textContent, CHECK_LAYOUT.words, true);
+    drawField(chkWords.textContent, CHECK_LAYOUT.words1);
+    if(chkWords2.textContent) drawField(chkWords2.textContent, CHECK_LAYOUT.words2);
     drawField(chkBeneficiary.textContent, CHECK_LAYOUT.beneficiary);
     drawField(chkDate.textContent, CHECK_LAYOUT.date);
     // ملاحظة: لا يُرسم العنوان على الصورة لعدم وجود سطر مخصص له في نموذج الصك الحقيقي.
