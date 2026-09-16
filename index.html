@@ -231,6 +231,25 @@
   .icon-btn svg{ width:16px;height:16px; }
   .copied-flash{ color:var(--green) !important; border-color: var(--green) !important; }
 
+  /* ---------- لوحة مشاركة الصك (خيارات احتياطية) ---------- */
+  .share-fallback{
+    display:none; margin-top:10px; padding:12px; border-radius:10px;
+    border:1px solid var(--line); background:var(--paper-dark);
+  }
+  .share-fallback.open{ display:block; }
+  .share-fallback p{ margin:0 0 10px; font-size:.8rem; color:var(--text-dim,#667); line-height:1.5; }
+  .share-platforms{ display:flex; gap:8px; flex-wrap:wrap; }
+  .share-platform-btn{
+    flex:1; min-width:110px; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px; border-radius:9px; border:1px solid var(--line); background:var(--card-bg);
+    font-family:inherit; font-size:.78rem; font-weight:700; cursor:pointer; color:#fff;
+    text-decoration:none;
+  }
+  .share-platform-btn.wa{ background:#25D366; border-color:#25D366; }
+  .share-platform-btn.tg{ background:#229ED9; border-color:#229ED9; }
+  .share-platform-btn.msg{ background:#00B2FF; border-color:#00B2FF; }
+  .share-platform-btn svg{ width:16px; height:16px; fill:currentColor; }
+
   /* ---------- المعاينة الواقعية للصك ---------- */
   .real-check-container {
     position: relative; border-radius: 10px; overflow: hidden;
@@ -430,6 +449,27 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         تحميل الصك كصورة
       </button>
+      <button class="icon-btn" id="shareChequeBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
+        مشاركة الصك
+      </button>
+    </div>
+    <div class="share-fallback" id="shareFallbackPanel">
+      <p id="shareFallbackText">تم تحميل صورة الصك على جهازك. اختر التطبيق الذي تريد المشاركة عبره ثم أرفق الصورة المحمَّلة في المحادثة التي ستُفتح:</p>
+      <div class="share-platforms">
+        <a class="share-platform-btn wa" id="shareWaLink" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M17.6 6.3A8.9 8.9 0 0012 4a9 9 0 00-7.8 13.4L3 21l3.7-1.2A9 9 0 0012 21a9 9 0 006.3-15.4l-.7.7zM12 19.3a7.3 7.3 0 01-3.7-1l-.3-.2-2.7.9.9-2.6-.2-.3A7.3 7.3 0 1119.3 12 7.3 7.3 0 0112 19.3zm4-5.5c-.2-.1-1.3-.6-1.5-.7-.2-.1-.3-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1-1.2-.6-2-1-2.8-2.4-.1-.2-.1-.4 0-.5l.4-.5c.1-.2.1-.3 0-.5l-.5-1.2c-.1-.3-.3-.3-.5-.3h-.4c-.2 0-.4.1-.5.3-.2.3-.7 1-.7 2 0 1 .7 2 .8 2.1.1.1 1.6 2.5 4 3.4 2 .8 2 .5 2.4.5.4 0 1.3-.5 1.5-1 .2-.5.2-.9.1-1z"/></svg>
+          واتساب
+        </a>
+        <a class="share-platform-btn tg" id="shareTgLink" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M21.9 4.4L2.7 11.9c-1.3.5-1.3 1.2-.2 1.6l4.9 1.5 1.9 5.9c.2.6.4.9.8.9.3 0 .5-.1.7-.3l2.7-2.6 4.8 3.5c.7.4 1.2.2 1.4-.7l3-13.8c.3-1.1-.3-1.6-1.1-1.5zM8.6 14.3l9.4-6c.4-.3.8-.1.5.2l-8 7.6-.3 3.1-1.6-4.9z"/></svg>
+          تيليغرام
+        </a>
+        <button class="share-platform-btn msg" id="shareMsgBtn" type="button">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.1 2 11.2c0 2.9 1.5 5.5 3.9 7.2V22l3.6-2c.8.2 1.6.3 2.5.3 5.5 0 10-4.1 10-9.1S17.5 2 12 2z"/></svg>
+          ماسنجر وغيره
+        </button>
+      </div>
     </div>
   </section>
 
@@ -1033,24 +1073,24 @@
   }
 
 
-  /* ============ تصدير الصك كصورة ============ */
+  /* ============ تصدير الصك كصورة ومشاركته ============ */
   // نميّز بين "لم تكتمل بعد" و"فشل التحميل تمامًا" لإعطاء المستخدم رسالة
   // دقيقة بدل رسالة واحدة عامة تُربكه في الحالتين (كان الكود السابق يعرض
   // نفس التنبيه سواء كانت الصورة لا تزال تُحمَّل أو أن مسارها خاطئ أصلاً).
   let checkImgFailed = false;
   document.getElementById('checkBgImg').addEventListener('error', ()=>{ checkImgFailed = true; });
 
-  document.getElementById('exportImgBtn').addEventListener('click', function(){
-    const btn = this;
+  // يبني نفس صورة الصك المُصدَّرة (Canvas) — مصدر واحد للحقيقة يستخدمه
+  // كل من زر "تحميل الصك كصورة" وزر "مشاركة الصك"، بدل تكرار منطق الرسم.
+  function buildChequeCanvas(){
     const img = document.getElementById('checkBgImg');
-
     if(checkImgFailed){
       alert("تعذّر تحميل صورة نموذج الصك (الملف مفقود أو مساره غير صحيح). تأكد من وجود cheque-ccp.jpg بجانب هذا الملف.");
-      return;
+      return null;
     }
     if(!img.complete || img.naturalWidth === 0) {
       alert("يرجى الانتظار حتى تكتمل تحميل صورة الخلفية أولاً.");
-      return;
+      return null;
     }
 
     const canvas = document.createElement('canvas');
@@ -1082,19 +1122,108 @@
     drawField(chkAddress.textContent, CHECK_LAYOUT.address);
     drawField(chkDate.textContent, CHECK_LAYOUT.date);
     // ملاحظة: عنوان مركز البريد يُرسم في خانة "المكان" قبل Le مباشرة (انظر أعلاه).
+    return canvas;
+  }
 
+  function chequeFileName(){
+    return 'CCP_Cheque_' + current.dinars + 'DA.jpg';
+  }
+
+  function downloadCanvasAsJpg(canvas, onDone){
     try {
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       const link = document.createElement('a');
-      link.download = 'CCP_Cheque_' + current.dinars + 'DA.jpg';
+      link.download = chequeFileName();
       link.href = dataUrl;
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
-      
+      if(onDone) onDone(true);
+    } catch(err) {
+      alert("تعذر حفظ الصورة محلياً بسبب قيود الأمان (CORS). يفضل تشغيل الملف عبر خادم محلي أو استضافته.");
+      if(onDone) onDone(false);
+    }
+  }
+
+  document.getElementById('exportImgBtn').addEventListener('click', function(){
+    const btn = this;
+    const canvas = buildChequeCanvas();
+    if(!canvas) return;
+    downloadCanvasAsJpg(canvas, (ok)=>{
+      if(!ok) return;
       const originalHtml = btn.innerHTML;
       btn.innerHTML = 'تم الحفظ بنجاح!';
       setTimeout(()=> btn.innerHTML = originalHtml, 2000);
-    } catch(err) {
-      alert("تعذر حفظ الصورة محلياً بسبب قيود الأمان (CORS). يفضل تشغيل الملف عبر خادم محلي أو استضافته.");
+    });
+  });
+
+  /* ============ مشاركة الصك (ماسنجر، واتساب، تيليغرام، وغيرها) ============
+     نعتمد أولًا على Web Share API مع ملف الصورة (navigator.share مع files)،
+     وهي الطريقة الوحيدة التي تفتح "قائمة المشاركة" الحقيقية لنظام الجهاز
+     وتضم كل التطبيقات المثبَّتة القادرة على استقبال صورة (واتساب، تيليغرام،
+     ماسنجر، وغيرها) — مدعومة على أغلب متصفحات الموبايل (Chrome/Safari على
+     أندرويد و iOS) وعلى Safari/Chrome على macOS، لكن غير مدعومة على أغلب
+     متصفحات سطح المكتب (خصوصًا Firefox وChrome على Linux). عند عدم الدعم،
+     نُنزّل الصورة تلقائيًا ونعرض روابط مباشرة لفتح واتساب/تيليغرام بنص جاهز،
+     مع تنبيه بضرورة إرفاق الصورة المحمَّلة يدويًا (لأنه لا يوجد رابط مباشر
+     على الويب لإرسال ملف صورة محلي إلى ماسنجر أو غيره بدون استضافتها أونلاين). */
+  function shareCaption(){
+    const amountTxt = fmtDZD(current.dinars, current.centimes) + ' دج';
+    return 'صك بريد جزائري (وهمي) بقيمة ' + amountTxt + ' — أُنشئ بواسطة أداة «عمّر الشاك».';
+  }
+
+  function openShareFallbackPanel(){
+    const caption = shareCaption();
+    document.getElementById('shareWaLink').href = 'https://wa.me/?text=' + encodeURIComponent(caption);
+    document.getElementById('shareTgLink').href = 'https://t.me/share/url?url=&text=' + encodeURIComponent(caption);
+    document.getElementById('shareFallbackPanel').classList.add('open');
+  }
+
+  document.getElementById('shareChequeBtn').addEventListener('click', async function(){
+    const btn = this;
+    const canvas = buildChequeCanvas();
+    if(!canvas) return;
+
+    canvas.toBlob(async (blob)=>{
+      if(!blob){
+        alert('تعذّر إنشاء صورة الصك للمشاركة.');
+        return;
+      }
+      const file = new File([blob], chequeFileName(), { type: 'image/jpeg' });
+      const canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+
+      if(navigator.share && canShareFiles){
+        try{
+          await navigator.share({ files: [file], text: shareCaption() });
+          return; // نجحت المشاركة عبر قائمة المشاركة الأصلية للجهاز
+        }catch(err){
+          // المستخدم أغلق قائمة المشاركة (AbortError) — لا حاجة لأي رسالة أو احتياطي
+          if(err && err.name === 'AbortError') return;
+          // أي خطأ آخر: ننتقل للاحتياطي أدناه
+        }
+      }
+
+      // احتياطي: لا يوجد دعم لمشاركة الملفات في هذا المتصفح (أغلب متصفحات
+      // سطح المكتب) — نُنزّل الصورة أولًا، ثم نعرض روابط مشاركة نصية جاهزة
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = 'جارٍ تحميل الصورة...';
+      downloadCanvasAsJpg(canvas, ()=>{
+        btn.innerHTML = originalHtml;
+        openShareFallbackPanel();
+      });
+    }, 'image/jpeg', 0.9);
+  });
+
+  document.getElementById('shareMsgBtn').addEventListener('click', async function(){
+    const caption = shareCaption();
+    // بعض متصفحات سطح المكتب (Chrome/Edge) تدعم navigator.share للنص فقط
+    // بدون ملفات؛ نجرّبها هنا كخيار أفضل من مجرد النسخ عند توفرها.
+    if(navigator.share){
+      try{ await navigator.share({ text: caption }); return; }catch(e){ if(e && e.name === 'AbortError') return; }
+    }
+    try{
+      await navigator.clipboard.writeText(caption);
+      alert('تم نسخ نص المشاركة. افتح ماسنجر (أو أي تطبيق آخر)، وأرفق الصورة التي تم تحميلها مع لصق النص.');
+    }catch(e){
+      alert('افتح ماسنجر (أو أي تطبيق آخر) وأرفق الصورة التي تم تحميلها.');
     }
   });
 
