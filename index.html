@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="عمّر الشاك: أداة مجانية تعمل بدون إنترنت لتحويل المبلغ إلى حروف بالعربية والفرنسية والإنجليزية، ومعاينة وتصدير صك بريد الجزائر (CCP)، وحساب رسوم التحويل البريدي.">
+<title>عمّر الشاك - بريد الجزائر</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ألوان بريد الجزائر الرسمية */
+    --ap-blue: #004B9B;
+    --ap-blue-dark: #003366;
+    --ap-yellow: #FFC600;
+    
+    /* ألوان الخلفيات والنصوص */
+    --paper:#F4F6F9;
+    --paper-dark:#E2E6EC;
+    --ink:#1C2B45;
+    --ink-soft:#4A5670;
+    --green:#10B981;
+    --red:#EF4444;
+    --line:#D1D5DB;
+    --radius:14px;
+    --shadow: 0 4px 6px -1px rgba(0, 75, 155, 0.08), 0 2px 4px -1px rgba(0, 75, 155, 0.04);
+    --card-bg: #FFFFFF;
+  }
+  
+  /* --- الوضع الليلي --- */
+  html.dark {
+    --ap-blue: #3A82F6;
+    --ap-blue-dark: #1E3A8A;
+    --ap-yellow: #FFC600;
+    --paper: #121212;
+    --paper-dark: #1E1E1E;
+    --ink: #E4E6EB;
+    --ink-soft: #A0AABF;
+    --line: #333333;
+    --card-bg: #1A1A1A;
+    --shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0; transition: background-color 0.3s ease, color 0.3s ease;}
+  body{
+    background: var(--paper);
+    color:var(--ink);
+    font-family:'Tajawal', 'Segoe UI', sans-serif;
+    line-height:1.55;
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  .ltr{ font-family:'Tajawal', sans-serif; direction:ltr; unicode-bidi:isolate; }
+  h1,h2,h3,.display{ font-family:'Cairo','Tajawal',sans-serif; }
+
+  /* ---------- شريط التطبيق العلوي (App Bar) ---------- */
+  header.app-bar {
+    background: linear-gradient(135deg, var(--ap-blue-dark) 0%, var(--ap-blue) 100%);
+    color: #fff;
+    padding: 12px 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-bottom: 3px solid var(--ap-yellow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .app-bar-inner {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .mark {
+    width: 40px; height: 40px;
+    background: #fff;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+  }
+  .mark svg { width: 24px; height: 24px; }
+  .brand-text h1 { margin: 0; font-size: 1.2rem; font-weight: 900; line-height: 1.1; }
+  .brand-text p { margin: 0; font-size: 0.75rem; color: rgba(255,255,255,0.85); font-weight: 500; }
+  
+  .theme-toggle {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    border-radius: 50%;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .theme-toggle:active { transform: scale(0.9); }
+  .theme-toggle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- اللافتة الترحيبية مع الحركة الصحيحة ---------- */
+  .welcome-banner {
+    background: rgba(0, 75, 155, 0.05);
+    border: 1px solid rgba(0, 75, 155, 0.1);
+    border-radius: var(--radius);
+    padding: 12px 0; /* Padding horizontal removed to let text start perfectly at edge */
+    overflow: hidden;
+    position: relative;
+    white-space: nowrap;
+  }
+  html.dark .welcome-banner { background: rgba(58, 130, 246, 0.1); border-color: rgba(58, 130, 246, 0.2); }
+  
+  .marquee-text {
+    display: inline-block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    padding-left: 20%; /* فجوة معقولة قبل إعادة الدخول، بدل فراغ يمتد لنصف الحركة تقريبًا */
+    animation: marquee 25s linear infinite; /* وقت أطول لحركة أبطأ وأكثر سلاسة */
+  }
+  
+  @keyframes marquee {
+    /* مُعدَّلة لتناسب dir="rtl": تبدأ الجملة بأول كلمة داخلة من اليمين
+       وتنتهي بآخر كلمة خارجة من اليسار، بدل العكس كما كانت سابقًا. */
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  /* ---------- التخطيط الرئيسي ---------- */
+  main{ max-width:640px; margin: 16px auto 0; padding:0 16px; display:flex; flex-direction:column; gap:16px; }
+  .card{
+    background: var(--card-bg);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow: var(--shadow);
+    transition: background-color 0.3s, border-color 0.3s;
+  }
+  .card h2{
+    margin:0 0 14px; font-size:1.05rem; font-weight:700; color:var(--ap-blue);
+    display:flex; align-items:center; gap:8px;
+  }
+  .card h2 .num{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:24px;height:24px;border-radius:50%;
+    background:rgba(0, 75, 155, 0.1); color:var(--ap-blue);
+    font-size:.75rem; font-weight:900; flex:none; font-family: sans-serif;
+  }
+  html.dark .card h2 .num { background: rgba(58, 130, 246, 0.2); }
+
+  /* ---------- إدخال المبلغ ---------- */
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:12px; }
+  .mode-btn{
+    flex:1; padding:9px; border-radius:10px; border:1px solid var(--line);
+    background:var(--paper); color:var(--ink-soft); font-family:inherit; font-size:.85rem;
+    font-weight:700; cursor:pointer; transition: 0.2s;
+  }
+  .mode-btn.active{ background:var(--ap-blue); color:#fff; border-color:var(--ap-blue); }
+  .amount-row{ display:flex; align-items:stretch; gap:10px; }
+  .amount-input-wrap{ position:relative; flex:1; }
+  
+  input#amount{
+    width:100%; font-size:1.1rem; font-weight:700; font-family:'Cairo',sans-serif;
+    padding:10px 14px 10px 55px;
+    border-radius:10px; border:1px solid var(--line);
+    background: var(--card-bg); color:var(--ink); text-align:right;
+    min-height: 52px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.2s;
+  }
+  input#amount:focus{ outline:none; border-color:var(--ap-blue); box-shadow: 0 0 0 3px rgba(0, 75, 155, 0.1); }
+  
+  .unit-suffix{
+    position:absolute; inset-inline-end:12px; top:50%; transform:translateY(-50%);
+    color:var(--ink-soft); font-size:.85rem; font-weight:700; pointer-events:none;
+  }
+  
+  .mic-btn{
+    flex:none; width:52px; border-radius:10px; border:1px solid var(--line);
+    background:var(--paper); cursor:pointer; display:flex; align-items:center; justify-content:center; transition: 0.2s;
+  }
+  .mic-btn.listening{ background:var(--red); border-color:var(--red); }
+  .mic-btn svg{ width:20px;height:20px; stroke:var(--ap-blue); }
+  .mic-btn.listening svg{ stroke:#fff; }
+  .hint{ font-size:.78rem; color:var(--ink-soft); margin-top:8px; }
+  
+  .breakdown{ display:flex; gap:10px; margin-top:12px; }
+  .breakdown .chip{
+    flex:1; background:var(--paper); border-radius:10px; padding:8px 10px; text-align:center;
+    border:1px solid var(--line);
+  }
+  .breakdown .chip b{ display:block; font-size:1.1rem; color:var(--ap-blue); }
+  .breakdown .chip span{ font-size:.72rem; color:var(--ink-soft); }
+
+  /* ---------- الكلمات (Tabs & Box) ---------- */
+  .lang-tabs {
+    display: flex; gap: 4px; margin-bottom: 12px;
+    background: var(--paper); padding: 4px;
+    border-radius: 10px; border: 1px solid var(--line);
+  }
+  .lang-tab {
+    flex: 1; border: none; background: transparent; padding: 8px;
+    border-radius: 8px; font-weight: 700; cursor: pointer;
+    color: var(--ink-soft); transition: 0.2s; font-family: inherit; font-size: 0.85rem;
+  }
+  .lang-tab.active {
+    background: var(--card-bg); color: var(--ap-blue);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--line);
+  }
+  
+  .words-box{
+    background:var(--paper); border:1px dashed var(--ap-yellow); border-radius:10px;
+    padding:10px 14px; font-size:1.1rem; font-weight:700; color:var(--ink); 
+    min-height: 52px; display: flex; align-items: center;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  .words-box.ltr{ font-size:1.05rem; text-align: left; }
+  
+  .actions-row{ display:flex; gap:8px; margin-top:10px; }
+  .icon-btn{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px; border-radius:9px; border:1px solid var(--line); background:var(--card-bg);
+    color:var(--ap-blue); font-family:inherit; font-size:.8rem; font-weight:700; cursor:pointer;
+    transition: 0.2s;
+  }
+  .icon-btn:active{ background:var(--paper-dark); }
+  .icon-btn svg{ width:16px;height:16px; }
+  .copied-flash{ color:var(--green) !important; border-color: var(--green) !important; }
+
+  /* ---------- المعاينة الواقعية للصك ---------- */
+  .real-check-container {
+    position: relative; width: 100%; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--line); background: #e9e5d9; box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+  }
+  .real-check-container img { width: 100%; display: block; user-select: none; pointer-events: none; }
+  .chk-text {
+    position: absolute; font-family: 'Cairo', sans-serif; font-weight: 700;
+    color: #1a1a1a; line-height: 1.2; text-shadow: 0 0 2px rgba(255,255,255,0.5);
+    text-align: right;
+    /* top/right/width/font-size محدَّدة ديناميكيًا من كائن CHECK_LAYOUT في الجافاسكربت
+       (مصدر واحد للحقيقة يُستخدم أيضًا عند تصدير الصورة) بدل تكرارها هنا. */
+  }
+  .chk-amount-num { letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; }
+  .chk-words { line-height: 1.25; }
+  .chk-beneficiary, .chk-date { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* لا يوجد سطر مخصص لعنوان المستفيد في نموذج صك بريد الجزائر الحقيقي،
+     لذلك لا نعرضه فوق الصك؛ يبقى الحقل متاحًا كملاحظة داخلية فقط. */
+  .chk-address { display: none; }
+
+  .check-inputs-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .check-field{ flex: 1; margin-top: 0; }
+  .check-field label{ display:block; font-size:.68rem; color:var(--ink-soft); margin-bottom:3px; }
+  .name-input{
+    width:100%; border:none; border-bottom:1.5px solid var(--ink-soft); background:transparent;
+    font-family:inherit; font-size:.95rem; font-weight:700; padding:4px 0; color:var(--ink);
+    transition: 0.3s;
+  }
+  .name-input:focus{ outline:none; border-color:var(--ap-blue); }
+
+  /* ---------- حاسبة الرسوم ---------- */
+  details.fee summary{ cursor:pointer; font-weight:700; color:var(--ap-blue); list-style:none; display:flex; align-items:center; justify-content:space-between; }
+  details.fee summary::-webkit-details-marker{ display:none; }
+  details.fee summary .chev{ transition:transform .2s; }
+  details.fee[open] summary .chev{ transform:rotate(180deg); }
+  .fee-body{ margin-top:12px; }
+  .fee-result{ margin-top:10px; background:var(--paper); border-radius:10px; padding:10px 12px; font-size:.88rem; border: 1px solid var(--line); }
+  .fee-note{ font-size:.72rem; color:var(--ink-soft); margin-top:6px; }
+
+  /* ---------- المفضلة ---------- */
+  .fav-list{ display:flex; flex-direction:column; gap:8px; }
+  .fav-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--paper); border-radius:10px; padding:9px 12px; border:1px solid var(--line);
+  }
+  .fav-item button.use{ background:none; border:none; text-align:right; flex:1; cursor:pointer; font-family:inherit; }
+  .fav-item .label{ font-weight:700; color:var(--ink); font-size:.9rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fav-item .amt{ font-size:.78rem; color:var(--ink-soft); }
+  .fav-item .del{ background:none; border:none; color:var(--red); cursor:pointer; padding:4px; }
+  
+  .fav-add-row{ display:flex; gap:8px; margin-top:12px; }
+  .fav-add-row input{
+    flex:1; padding:9px 10px; border-radius:8px; border:1px solid var(--line); font-family:inherit; font-size:.85rem;
+    background:var(--card-bg); color:var(--ink);
+  }
+  .fav-add-row button{
+    background:var(--ap-blue); color:#fff; border:none; border-radius:8px; padding:0 16px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .empty-note{ font-size:.82rem; color:var(--ink-soft); text-align:center; padding:8px 0; }
+
+  footer{ max-width:640px; margin:18px auto 0; padding:0 20px; text-align:center; }
+  footer p{ font-size:.74rem; color:var(--ink-soft); }
+  .badge-offline{
+    display:inline-flex; align-items:center; gap:6px; background:var(--green); color:#fff;
+    font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:20px; margin-top:2px;
+  }
+  .badge-offline svg{ width:12px;height:12px; stroke: #fff; }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+
+  /* نص مخفٍ بصريًا لكن متاح لقارئات الشاشة (تحسين إمكانية الوصول) */
+  .sr-only{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+</style>
+</head>
+<body>
+
+<!-- شريط التطبيق العلوي الاحترافي -->
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+           <rect x="2" y="5" width="20" height="14" rx="2" stroke="var(--ap-blue)" stroke-width="2" />
+           <path d="M2 7l10 7 10-7" stroke="var(--ap-blue)" stroke-width="2" />
+           <path d="M9 15l2.5 2.5 5-5" stroke="var(--ap-yellow)" stroke-width="3" />
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>عمّر الشاك</h1>
+        <p>مساعد تعبئة الصك البريدي</p>
+      </div>
+    </div>
+    
+    <button id="themeToggle" class="theme-toggle" aria-label="تبديل المظهر" title="تفعيل الوضع الليلي">
+      <svg id="sunIcon" style="display:none;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg id="moonIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- لافتة ترحيبية أنيقة بحركة مستمرة -->
+  <div class="welcome-banner">
+    <span class="marquee-text">أدخل المبلغ بالدينار أو السنتيم، لتحويله فورًا إلى حروف صحيحة جاهزة لملء صكك البريدي (CCP) بدون أخطاء.</span>
+  </div>
+
+  <!-- 1. AMOUNT INPUT -->
+  <section class="card">
+    <h2><span class="num">1</span>المبلغ</h2>
+    <div class="mode-toggle" role="group" aria-label="وحدة إدخال المبلغ">
+      <button class="mode-btn active" id="modeDinarBtn" type="button" aria-pressed="true">بالدينار</button>
+      <button class="mode-btn" id="modeCentimeBtn" type="button" aria-pressed="false">بالسنتيم</button>
+    </div>
+    <div class="amount-row">
+      <div class="amount-input-wrap">
+        <label for="amount" class="sr-only">المبلغ</label>
+        <input id="amount" inputmode="decimal" placeholder="0" autocomplete="off" aria-describedby="micHint">
+        <span class="unit-suffix" id="unitSuffix">دج</span>
+      </div>
+      <button class="mic-btn" id="micBtn" type="button" title="إدخال صوتي">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+    </div>
+    <p class="hint" id="micHint">اضغط على الميكروفون وانطق الرقم (يحتاج إنترنت)، أو اكتبه مباشرة.</p>
+    <div class="breakdown">
+      <div class="chip"><b id="chipDinar">0</b><span>دينار جزائري</span></div>
+      <div class="chip"><b id="chipCentime">00</b><span>سنتيم</span></div>
+    </div>
+  </section>
+
+  <!-- 2. WORDS OUTPUT (COMBINED TABS) -->
+  <section class="card">
+    <h2><span class="num">2</span>المبلغ بالحروف</h2>
+    
+    <div class="lang-tabs" role="tablist" aria-label="لغة الكتابة بالحروف">
+      <button class="lang-tab active" data-lang="ar" role="tab" aria-selected="true">عربي</button>
+      <button class="lang-tab" data-lang="fr" role="tab" aria-selected="false">Français</button>
+      <button class="lang-tab" data-lang="en" role="tab" aria-selected="false">English</button>
+    </div>
+
+    <div class="words-box" id="outputWords" role="status" aria-live="polite">صفر دينار جزائري</div>
+    
+    <div class="actions-row">
+      <button class="icon-btn" id="copyBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> نسخ
+      </button>
+      <button class="icon-btn" id="readBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 010 7"/></svg> استمع
+      </button>
+      <button class="icon-btn" id="shareBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg> مشاركة
+      </button>
+    </div>
+  </section>
+
+  <!-- 3. REAL CHECK MOCKUP & EXPORT -->
+  <section class="card">
+    <h2><span class="num">3</span>معاينة الصك الوهمية</h2>
+    
+    <!-- حقول الإدخال الخاصة بالصك (منقولة لأعلى) -->
+    <div class="check-inputs-row">
+      <div class="check-field">
+        <label>اسم المستفيد</label>
+        <input class="name-input" id="beneficiaryInput" placeholder="مثال: سونلغاز" maxlength="45">
+      </div>
+      <div class="check-field">
+        <label>ملاحظة داخلية (لا تظهر على الصك)</label>
+        <input class="name-input" id="addressInput" placeholder="مثال: عنوان المستفيد للأرشيف" maxlength="80">
+      </div>
+    </div>
+
+    <div class="real-check-container" id="checkMockup">
+      <img src="cheque-ccp.jpg" alt="نموذج صك بريد الجزائر (CCP)" id="checkBgImg">
+      
+      <div class="chk-text chk-amount-num" id="chkAmountNum">0,00</div>
+      <div class="chk-text chk-words" id="chkWords">صفر دينار جزائري</div>
+      <div class="chk-text chk-beneficiary" id="chkBeneficiary"></div>
+      <div class="chk-text chk-address" id="chkAddress"></div>
+      <div class="chk-text chk-date" id="chkDate"></div>
+    </div>
+    
+    <div class="actions-row" style="margin-top: 14px;">
+      <button class="icon-btn" id="exportImgBtn" type="button" style="background: var(--ap-blue); color: #fff; border-color: var(--ap-blue);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        تحميل الصك كصورة
+      </button>
+    </div>
+  </section>
+
+  <!-- 4. FEE ESTIMATOR -->
+  <section class="card">
+    <details class="fee" open>
+      <summary>
+        <span><span class="num" style="display:inline-flex;background:rgba(0, 75, 155, 0.1);border-radius:50%;width:24px;height:24px;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;color:var(--ap-blue);margin-left:6px;font-family:sans-serif;">4</span>حاسبة الرسوم البريدية الرسمية (CCP)</span>
+        <svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </summary>
+      <div class="fee-body">
+        <div class="fee-result">
+          <span>الرسوم البريدية (ثابتة + متغيرة): <b id="feeAmount">18,00 دج</b></span><br>
+          <span style="margin-top:4px; display:block;">إجمالي المبلغ المقتطع من الحساب الجاري: <b id="feeTotal">0,00 دج</b></span>
+        </div>
+        <p class="fee-note" id="feeNote">ملاحظة: الرسوم تُخصم مباشرة من رصيد الحساب الجاري (CCP) ولا تُخصم من المبلغ المسحوب في الصك. (رسم ثابت 18 دج + رسوم متغيرة حسب الشطور الرسمية).</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- 5. FAVORITES -->
+  <section class="card">
+    <h2><span class="num">5</span>المفضلة</h2>
+    <div class="fav-list" id="favList"></div>
+    <p class="empty-note" id="favEmpty">لا توجد مبالغ محفوظة بعد.</p>
+    <div class="fav-add-row">
+      <input id="favLabel" placeholder="تسمية (مثلاً: كراء)" maxlength="30">
+      <button id="favAddBtn" type="button">حفظ</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span class="badge-offline">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+    يعمل بدون إنترنت
+  </span>
+  <p>تطبيق مساعد للاستخدام الشخصي، تأكد دائمًا قبل توقيع الصك.</p>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ الوضع الليلي ============ */
+  const themeToggleBtn = document.getElementById('themeToggle');
+  const sunIcon = document.getElementById('sunIcon');
+  const moonIcon = document.getElementById('moonIcon');
+  const THEME_KEY = 'omar-chek:theme';
+
+  function applyTheme(isDark) {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      sunIcon.style.display = 'block'; moonIcon.style.display = 'none';
+    } else {
+      document.documentElement.classList.remove('dark');
+      sunIcon.style.display = 'none'; moonIcon.style.display = 'block';
+    }
+  }
+
+  let savedTheme = 'light';
+  try { savedTheme = window.localStorage.getItem(THEME_KEY) || 'light'; } catch(e) {}
+  if (!window.localStorage.getItem(THEME_KEY) && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) { savedTheme = 'dark'; }
+  applyTheme(savedTheme === 'dark');
+
+  themeToggleBtn.addEventListener('click', () => {
+    const newTheme = !document.documentElement.classList.contains('dark');
+    applyTheme(newTheme);
+    try { window.localStorage.setItem(THEME_KEY, newTheme ? 'dark' : 'light'); } catch(e) {}
+  });
+
+  /* ============ خوارزميات تحويل الأرقام ============ */
+  
+  // 1. العربية (تم حذف "لا غير")
+  const arOnes = ['', 'واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'];
+  const arTeens = ['عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+  const arTens = ['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+  // الصيغة العربية الفصيحة الصحيحة عند إضافة "مائة" تُسقط تاء التأنيث المربوطة
+  // من العدد قبلها (ثلاثمائة لا "ثلاثةمائة"، تسعمائة لا "تسعةمائة"...). الكود
+  // السابق كان يُلصق arOnes[hundred] مباشرة بـ"مائة" فينتج عنه خطأ نحوي متكرر
+  // في كل مبلغ تكون خانة مئاته من 3 إلى 9 — وهو خطأ خطير في أداة لتحرير صكوك.
+  const arHundreds = ['', 'مائة', 'مئتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
+  const arScales = [{singular:'ألف', dual:'ألفان', plural:'آلاف'},{singular:'مليون', dual:'مليونان', plural:'ملايين'},{singular:'مليار', dual:'ملياران', plural:'مليارات'}];
+  // أعلى رقم تدعمه القوائم أعلاه بأمان (حتى مليارات فقط). أي رقم أكبر كان سابقًا
+  // يُفقد اسم الشريحة بصمت (997 مليار تريليون تتحول لعبارة بلا "تريليون" مثلاً)
+  // وهو خطأ خطير في أداة لتعبئة صكوك مالية. الآن نمنع ذلك صراحة بدل تجاهله.
+  const MAX_SUPPORTED_DINARS = 999999999999; // < 1000 مليار (تريليون واحد)
+  
+  function arThreeDigits(n){
+    if(n===0) return ''; const parts=[]; const hundred = Math.floor(n/100); const rest = n%100;
+    if(hundred>0){ parts.push(arHundreds[hundred]); }
+    if(rest>0){
+      if(rest<10) parts.push(arOnes[rest]);
+      else if(rest<20) parts.push(arTeens[rest-10]);
+      else{ const t=Math.floor(rest/10), o=rest%10; if(o===0) parts.push(arTens[t]); else parts.push(arOnes[o]+' و'+arTens[t]); }
+    }
+    return parts.join(' و');
+  }
+  function arInteger(num){
+    num = Math.floor(num); if(num===0) return 'صفر';
+    const groups=[]; let n=num; while(n>0){ groups.push(n%1000); n=Math.floor(n/1000); } const out=[];
+    for(let i=groups.length-1;i>=0;i--){
+      const g=groups[i]; if(g===0) continue;
+      if(i===0) out.push(arThreeDigits(g));
+      else {
+        const scale = arScales[i-1]; if(!scale){ out.push(arThreeDigits(g)); continue; }
+        if(g===1) out.push(scale.singular); else if(g===2) out.push(scale.dual);
+        else if(g>=3 && g<=10) out.push(arThreeDigits(g)+' '+scale.plural); else out.push(arThreeDigits(g)+' '+scale.singular);
+      }
+    }
+    return out.join(' و');
+  }
+  function amountToArabicWords(dinars, centimes){
+    const parts=[];
+    if(dinars>0) {
+      if(dinars===1) parts.push('دينار جزائري واحد'); else if(dinars===2) parts.push('ديناران جزائريان');
+      else if(dinars>=3 && dinars<=10) parts.push(arInteger(dinars)+' دنانير جزائرية'); else parts.push(arInteger(dinars)+' دينار جزائري');
+    }
+    if(centimes>0) {
+      if(centimes===1) parts.push('سنتيم واحد'); else if(centimes===2) parts.push('سنتيمان');
+      else if(centimes>=3 && centimes<=10) parts.push(arInteger(centimes)+' سنتيمات'); else parts.push(arInteger(centimes)+' سنتيم');
+    }
+    if(parts.length===0) return 'صفر دينار جزائري';
+    return parts.join(' و');
+  }
+
+  // 2. الفرنسية (تم حذف "seulement")
+  const frUnits = ['', 'un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
+  const frTens = ['', '', 'vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
+  function frTwoDigits(n){
+    if(n<20) return frUnits[n]; const t=Math.floor(n/10), u=n%10;
+    if(t===7 || t===9){ const base = (t===7)?'soixante':'quatre-vingt'; if(u===1 && t===7) return base+'-et-onze'; return base+'-'+frUnits[10+u]; }
+    if(u===0) return (t===8)?'quatre-vingts':frTens[t]; if(u===1 && t!==8) return frTens[t]+'-et-un'; return frTens[t]+'-'+frUnits[u];
+  }
+  function frThreeDigits(n){
+    const h=Math.floor(n/100), r=n%100; const parts=[];
+    if(h>0){ if(h===1) parts.push('cent'); else parts.push(frUnits[h]+' cent'+((r===0)?'s':'')); }
+    if(r>0) parts.push(frTwoDigits(r)); return parts.join(' ');
+  }
+  function amountToFrenchWords(dinars, centimes){
+    const frInteger = (num) => {
+      if(num===0) return 'zéro';
+      const groups=[]; let n=num; while(n>0){ groups.push(n%1000); n=Math.floor(n/1000); }
+      const scaleNames=['','mille','million','milliard']; const parts=[];
+      for(let i=groups.length-1;i>=0;i--){
+        const g=groups[i]; if(g===0) continue; let w;
+        if(i===1) w = (g===1) ? 'mille' : frThreeDigits(g)+' mille';
+        else if(i>=2) w = (g===1) ? 'un '+scaleNames[i] : frThreeDigits(g)+' '+scaleNames[i]+((g>1)?'s':''); else w = frThreeDigits(g);
+        parts.push(w);
+      }
+      return parts.join(' ');
+    };
+    const parts=[];
+    if(dinars>0) parts.push(frInteger(dinars)+' dinar'+((dinars>1)?'s':'')+' algérien'+((dinars>1)?'s':''));
+    if(centimes>0) parts.push(frInteger(centimes)+' centime'+((centimes>1)?'s':''));
+    if(parts.length===0) return 'zéro dinar algérien';
+    return parts.join(' et ');
+  }
+
+  // 3. الإنجليزية (تم حذف "only")
+  const enOnes = ['', 'one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+  const enTens = ['', '','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+  function enThreeDigits(n) {
+    if (n === 0) return ''; let str = ''; let h = Math.floor(n / 100); let rest = n % 100;
+    if (h > 0) { str += enOnes[h] + ' hundred'; if (rest > 0) str += ' and '; }
+    if (rest > 0) {
+      if (rest < 20) { str += enOnes[rest]; } 
+      else { let t = Math.floor(rest / 10); let o = rest % 10; str += enTens[t]; if (o > 0) str += '-' + enOnes[o]; }
+    }
+    return str;
+  }
+  function enInteger(num) {
+    if (num === 0) return 'zero'; const scales = ['', 'thousand', 'million', 'billion'];
+    let groups = []; let n = num; while (n > 0) { groups.push(n % 1000); n = Math.floor(n / 1000); } let parts = [];
+    for (let i = groups.length - 1; i >= 0; i--) {
+      let g = groups[i]; if (g === 0) continue; let p = enThreeDigits(g); if (i > 0) p += ' ' + scales[i]; parts.push(p);
+    }
+    return parts.join(' ');
+  }
+  function amountToEnglishWords(dinars, centimes) {
+    let parts = [];
+    if (dinars > 0) { parts.push(enInteger(dinars) + (dinars === 1 ? ' Algerian dinar' : ' Algerian dinars')); }
+    if (centimes > 0) { parts.push(enInteger(centimes) + (centimes === 1 ? ' centime' : ' centimes')); }
+    if (parts.length === 0) return 'zero Algerian dinars';
+    return parts.join(' and ');
+  }
+
+  function fmtDZD(dinars, centimes){
+    return String(dinars).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + String(centimes).padStart(2,'0') ;
+  }
+
+  /* ============ تموضع الحقول على صورة الصك (مصدر واحد للحقيقة) ============
+     كل قيمة بالنسبة المئوية من أبعاد الصورة الحقيقية (cheque-ccp.jpg).
+     تُستخدم هذه القيم لضبط المعاينة الحية (CSS) ولحساب إحداثيات الرسم
+     عند التصدير كصورة (canvas)، بدل تكرار الأرقام في مكانين منفصلين
+     كما كان سابقًا (وهو ما كان يسبب اختلاف المعاينة عن الصورة المصدَّرة).
+     لإعادة المعايرة عند تغيير صورة الصك: عدّل top/right/width هنا فقط. */
+  const CHECK_LAYOUT = {
+    amountNum:   { top: 7,  right: 7,  width: 22, fontPct: 0.017 },
+    // سطرا "المبلغ بالحروف" في النموذج الحقيقي سطران فعليًا (بينهما مسافة)
+    // لذلك نسمح بالتفاف النص على سطرين ضمن هذا النطاق بدل إجباره سطرًا واحدًا
+    words:       { top: 19, right: 16, width: 68, fontPct: 0.021 },
+    beneficiary: { top: 39, right: 6,  width: 76, fontPct: 0.023 },
+    date:        { top: 46, right: 6,  width: 16, fontPct: 0.019 }
+  };
+
+  function applyCheckLayout(){
+    const container = document.getElementById('checkMockup');
+    const containerWidth = container.clientWidth || 400;
+    Object.entries({
+      amountNum: chkAmountNum, words: chkWords,
+      beneficiary: chkBeneficiary, date: chkDate
+    }).forEach(([key, el])=>{
+      const pos = CHECK_LAYOUT[key];
+      el.style.top = pos.top + '%';
+      el.style.right = pos.right + '%';
+      el.style.width = pos.width + '%';
+      // نفس fontPct المستخدم في تصدير الصورة (canvas) يُستخدم هنا أيضًا،
+      // بدل نسبة عائمة (rem) منفصلة، لتبقى المعاينة الحية والصورة المصدَّرة متطابقتين دائمًا.
+      el.style.fontSize = (containerWidth * pos.fontPct) + 'px';
+    });
+  }
+  // إعادة حساب حجم الخط عند تغيّر عرض الحاوية (تجاوب مع حجم الشاشة)
+  window.addEventListener('resize', applyCheckLayout);
+
+  /* ============ DOM & STATE ============ */
+  let mode = 'dinar';
+  let current = { dinars:0, centimes:0 };
+  let currentLang = 'ar';
+  let generatedWords = { ar: '', fr: '', en: '' };
+  
+  const amountInput = document.getElementById('amount');
+  const beneficiaryInput = document.getElementById('beneficiaryInput');
+  const addressInput = document.getElementById('addressInput');
+  
+  const chkAmountNum = document.getElementById('chkAmountNum');
+  const chkWords = document.getElementById('chkWords');
+  const chkBeneficiary = document.getElementById('chkBeneficiary');
+  const chkAddress = document.getElementById('chkAddress');
+  const chkDate = document.getElementById('chkDate');
+  
+  const outputWords = document.getElementById('outputWords');
+  const langTabs = document.querySelectorAll('.lang-tab');
+
+  /* التبديل بين اللغات (Tabs) */
+  langTabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      langTabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+      e.currentTarget.classList.add('active');
+      e.currentTarget.setAttribute('aria-selected','true');
+      currentLang = e.currentTarget.dataset.lang;
+      updateWordsDisplay();
+    });
+  });
+
+  function updateWordsDisplay() {
+    outputWords.textContent = generatedWords[currentLang];
+    if(currentLang === 'ar') {
+      outputWords.classList.remove('ltr');
+      outputWords.style.direction = 'rtl';
+    } else {
+      outputWords.classList.add('ltr');
+      outputWords.style.direction = 'ltr';
+    }
+  }
+
+  /* يفسّر إدخال المستخدم بشكل صحيح حتى لو خلط بين الفاصلة والنقطة معًا
+     (مثال: "1,234.56" أو "1.234,56")، بخلاف الكود السابق الذي كان
+     يستبدل أول فاصلة فقط ويكسر الرقم في هذه الحالة. الفاصل الأخير في
+     النص هو الفاصل العشري دائمًا، وأي فواصل قبله تُعامل كفواصل آلاف. */
+  function parseAmountInput(str){
+    const s = str.trim().replace(/\s/g,'');
+    if(s === '') return NaN;
+    const sepIndex = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'));
+    if(sepIndex === -1) return parseFloat(s);
+    const intPart = s.slice(0, sepIndex).replace(/[.,]/g,'') || '0';
+    const fracPart = s.slice(sepIndex + 1).replace(/[^\d]/g,'') || '0';
+    return parseFloat(intPart + '.' + fracPart);
+  }
+
+  /* حساب وتحديث الواجهة */
+  function recalc(){
+    const val = parseAmountInput(amountInput.value);
+    let overLimit = false;
+    if(isNaN(val) || val<0) { current = {dinars:0, centimes:0}; }
+    else if(mode==='centime'){
+      const tc = Math.round(val); current = { dinars: Math.floor(tc/100), centimes: tc%100 };
+    } else {
+      const d = Math.floor(val); current = { dinars: d, centimes: Math.min(Math.round((val-d)*100),99) };
+    }
+    // حماية من تجاوز أقصى رقم تدعمه ألفاظ التحويل بأمان (انظر MAX_SUPPORTED_DINARS)
+    if(current.dinars > MAX_SUPPORTED_DINARS){ current = {dinars:0, centimes:0}; overLimit = true; }
+
+    document.getElementById('chipDinar').textContent = String(current.dinars).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    document.getElementById('chipCentime').textContent = String(current.centimes).padStart(2,'0');
+
+    if(overLimit){
+      const warn = 'الرقم كبير جدًا وغير مدعوم — الحد الأقصى 999,999,999,999';
+      generatedWords.ar = warn; generatedWords.fr = warn; generatedWords.en = warn;
+    } else {
+      generatedWords.ar = amountToArabicWords(current.dinars, current.centimes);
+      generatedWords.fr = amountToFrenchWords(current.dinars, current.centimes);
+      generatedWords.en = amountToEnglishWords(current.dinars, current.centimes);
+    }
+    
+    updateWordsDisplay();
+    
+    chkWords.textContent = generatedWords.ar;
+    chkAmountNum.textContent = fmtDZD(current.dinars, current.centimes);
+    chkBeneficiary.textContent = beneficiaryInput.value.trim();
+    chkAddress.textContent = addressInput.value.trim();
+
+    updateFee();
+  }
+
+  amountInput.addEventListener('input', recalc);
+  beneficiaryInput.addEventListener('input', recalc);
+  addressInput.addEventListener('input', recalc);
+
+  document.getElementById('modeDinarBtn').addEventListener('click', function(){
+    mode='dinar'; this.classList.add('active'); this.setAttribute('aria-pressed','true');
+    const other = document.getElementById('modeCentimeBtn');
+    other.classList.remove('active'); other.setAttribute('aria-pressed','false');
+    document.getElementById('unitSuffix').textContent = 'دج'; recalc();
+  });
+  document.getElementById('modeCentimeBtn').addEventListener('click', function(){
+    mode='centime'; this.classList.add('active'); this.setAttribute('aria-pressed','true');
+    const other = document.getElementById('modeDinarBtn');
+    other.classList.remove('active'); other.setAttribute('aria-pressed','false');
+    document.getElementById('unitSuffix').textContent = 'سنتيم'; recalc();
+  });
+
+  const today = new Date();
+  chkDate.textContent = today.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+
+  /* ============ الإدخال الصوتي ============ */
+  const micBtn = document.getElementById('micBtn');
+  const micHint = document.getElementById('micHint');
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(SpeechRec){
+    const rec = new SpeechRec();
+    rec.lang = 'ar-DZ'; rec.interimResults = false; rec.maxAlternatives = 1;
+    let listening = false;
+    micBtn.addEventListener('click', ()=>{
+      if(listening){ rec.stop(); return; }
+      try{ rec.start(); }catch(e){}
+    });
+    rec.addEventListener('start', ()=>{ listening=true; micBtn.classList.add('listening'); micHint.textContent='...أستمع الآن'; });
+    rec.addEventListener('end', ()=>{ listening=false; micBtn.classList.remove('listening'); micHint.textContent='اضغط على الميكروفون وانطق الرقم (يحتاج إنترنت)، أو اكتبه مباشرة.'; });
+    rec.addEventListener('result', (e)=>{
+      const transcript = e.results[0][0].transcript;
+      const digits = transcript.replace(/[^\d.,]/g,'');
+      if(digits){
+        amountInput.value = digits.replace(',', '.'); recalc();
+        micHint.textContent = 'تم التعرف على: «'+transcript+'» — تحقّق من الرقم قبل الاستعمال.';
+      } else {
+        micHint.textContent = 'لم أتعرف على رقم في: «'+transcript+'» — جرّب الكتابة يدويًا.';
+      }
+    });
+    rec.addEventListener('error', ()=>{ micHint.textContent='تعذّر الوصول للميكروفون، تحقّق من الأذونات والاتصال بالإنترنت.'; });
+  } else {
+    micBtn.style.opacity = '0.4';
+    micBtn.addEventListener('click', ()=>{ micHint.textContent='الإدخال الصوتي غير مدعوم في هذا المتصفح.'; });
+  }
+
+
+  /* ============ تصدير الصك كصورة ============ */
+  // نميّز بين "لم تكتمل بعد" و"فشل التحميل تمامًا" لإعطاء المستخدم رسالة
+  // دقيقة بدل رسالة واحدة عامة تُربكه في الحالتين (كان الكود السابق يعرض
+  // نفس التنبيه سواء كانت الصورة لا تزال تُحمَّل أو أن مسارها خاطئ أصلاً).
+  let checkImgFailed = false;
+  document.getElementById('checkBgImg').addEventListener('error', ()=>{ checkImgFailed = true; });
+
+  document.getElementById('exportImgBtn').addEventListener('click', function(){
+    const btn = this;
+    const img = document.getElementById('checkBgImg');
+
+    if(checkImgFailed){
+      alert("تعذّر تحميل صورة نموذج الصك (الملف مفقود أو مساره غير صحيح). تأكد من وجود cheque-ccp.jpg بجانب هذا الملف.");
+      return;
+    }
+    if(!img.complete || img.naturalWidth === 0) {
+      alert("يرجى الانتظار حتى تكتمل تحميل صورة الخلفية أولاً.");
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    ctx.drawImage(img, 0, 0, w, h);
+    ctx.fillStyle = '#1C2B45';
+    ctx.textAlign = 'right';
+
+    // نفس نسب CHECK_LAYOUT المستخدمة في المعاينة الحية بالضبط (مصدر واحد للحقيقة)
+    // يدعم "wrap" لالتفاف النص على سطرين تمامًا كما يحدث في المعاينة الحية،
+    // بدل رسمه كسطر واحد طويل قد يخرج عن حدود الصك (كان هذا خللاً محتملاً).
+    function drawField(text, layout, wrap){
+      const fontSize = w * layout.fontPct;
+      ctx.font = 'bold ' + fontSize + 'px Cairo, Arial';
+      const x = w * (1 - layout.right / 100);
+      const maxWidth = w * (layout.width / 100);
+      const baseY = h * (layout.top / 100) + fontSize;
+      if(!wrap){ ctx.fillText(text, x, baseY); return; }
+      const lineHeight = fontSize * 1.25;
+      const words = text.split(' ');
+      const lines = [];
+      let line = '';
+      for(const word of words){
+        const test = line ? line + ' ' + word : word;
+        if(line && ctx.measureText(test).width > maxWidth){ lines.push(line); line = word; }
+        else line = test;
+      }
+      if(line) lines.push(line);
+      lines.forEach((l, i) => ctx.fillText(l, x, baseY + i * lineHeight));
+    }
+
+    drawField(chkAmountNum.textContent, CHECK_LAYOUT.amountNum);
+    drawField(chkWords.textContent, CHECK_LAYOUT.words, true);
+    drawField(chkBeneficiary.textContent, CHECK_LAYOUT.beneficiary);
+    drawField(chkDate.textContent, CHECK_LAYOUT.date);
+    // ملاحظة: لا يُرسم العنوان على الصورة لعدم وجود سطر مخصص له في نموذج الصك الحقيقي.
+
+    try {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      const link = document.createElement('a');
+      link.download = 'CCP_Cheque_' + current.dinars + 'DA.jpg';
+      link.href = dataUrl;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = 'تم الحفظ بنجاح!';
+      setTimeout(()=> btn.innerHTML = originalHtml, 2000);
+    } catch(err) {
+      alert("تعذر حفظ الصورة محلياً بسبب قيود الأمان (CORS). يفضل تشغيل الملف عبر خادم محلي أو استضافته.");
+    }
+  });
+
+  /* ============ حاسبة رسوم بريد الجزائر ============
+     الثوابت أدناه تمثّل شرائح الرسوم (رسم ثابت + رسم متغيّر لكل 1000 دج
+     من كل شريحة). سُمّيت بوضوح بدل أرقام غامضة (magic numbers) مبعثرة
+     داخل الحساب، حتى يسهل تحديثها مستقبلًا إن غيّر بريد الجزائر تعريفته
+     الرسمية دون الحاجة لقراءة الكود بالكامل لفهم كل رقم. */
+  const CCP_FEE = {
+    BASE_FEE: 18,           // رسم ثابت لكل صك بغض النظر عن المبلغ
+    TRANCHE1_LIMIT: 18000,  // نهاية الشريحة الأولى (دج)
+    TRANCHE2_LIMIT: 1000000,// نهاية الشريحة الثانية (دج)
+    TRANCHE1_RATE: 2,       // دج لكل 1000 دج ضمن الشريحة الأولى
+    TRANCHE2_RATE: 3,       // دج لكل 1000 دج ضمن الشريحة الثانية
+    TRANCHE3_RATE: 6        // دج لكل 1000 دج لما بعد الشريحة الثانية
+  };
+
+  function calculateCCPFee(dinars) {
+    if (dinars <= 0) return 0;
+    let variableFee = 0;
+
+    const tranche1 = Math.min(dinars, CCP_FEE.TRANCHE1_LIMIT);
+    variableFee += Math.ceil(tranche1 / 1000) * CCP_FEE.TRANCHE1_RATE;
+
+    if (dinars > CCP_FEE.TRANCHE1_LIMIT) {
+      const tranche2 = Math.min(dinars - CCP_FEE.TRANCHE1_LIMIT, CCP_FEE.TRANCHE2_LIMIT - CCP_FEE.TRANCHE1_LIMIT);
+      variableFee += Math.ceil(tranche2 / 1000) * CCP_FEE.TRANCHE2_RATE;
+    }
+
+    if (dinars > CCP_FEE.TRANCHE2_LIMIT) {
+      const tranche3 = dinars - CCP_FEE.TRANCHE2_LIMIT;
+      variableFee += Math.ceil(tranche3 / 1000) * CCP_FEE.TRANCHE3_RATE;
+    }
+
+    return CCP_FEE.BASE_FEE + variableFee;
+  }
+
+  function updateFee(){
+    const feeDinars = calculateCCPFee(current.dinars);
+    const feeCentimes = feeDinars * 100;
+    const totalWithdrawnCentimes = current.dinars * 100 + current.centimes;
+    const totalAccountDebitCentimes = totalWithdrawnCentimes + feeCentimes;
+    
+    document.getElementById('feeAmount').textContent = fmtDZD(Math.floor(feeCentimes/100), feeCentimes%100) + ' دج';
+    document.getElementById('feeTotal').textContent = fmtDZD(Math.floor(totalAccountDebitCentimes/100), totalAccountDebitCentimes%100) + ' دج';
+  }
+
+  /* ============ المفضلة (Local Storage) ============ */
+  const favList = document.getElementById('favList');
+  const favEmpty = document.getElementById('favEmpty');
+  const favLabelInput = document.getElementById('favLabel');
+  const favAddBtn = document.getElementById('favAddBtn');
+  const FAV_KEY = 'omar-chek:favorites';
+  let favorites = [];
+
+  function loadFavorites(){
+    try{ const stored = window.localStorage.getItem(FAV_KEY); if(stored) favorites = JSON.parse(stored); }catch(e){}
+    renderFavorites();
+  }
+  function saveFavorites(){
+    try{ window.localStorage.setItem(FAV_KEY, JSON.stringify(favorites)); }catch(e){}
+  }
+  function renderFavorites(){
+    favList.innerHTML=''; favEmpty.style.display = favorites.length ? 'none' : 'block';
+    favorites.forEach((f, idx)=>{
+      const row = document.createElement('div'); row.className='fav-item';
+      const useBtn = document.createElement('button'); useBtn.className='use'; useBtn.type='button';
+      useBtn.innerHTML = '<span class="label"></span><span class="amt"></span>';
+      useBtn.querySelector('.label').textContent = f.label;
+      useBtn.querySelector('.amt').textContent = fmtDZD(f.dinars, f.centimes);
+      useBtn.addEventListener('click', ()=>{
+        document.getElementById('modeDinarBtn').click();
+        amountInput.value = f.dinars + (f.centimes ? '.'+String(f.centimes).padStart(2,'0') : '');
+        recalc(); window.scrollTo({top:0, behavior:'smooth'});
+      });
+      const delBtn = document.createElement('button'); delBtn.className='del'; delBtn.type='button'; delBtn.innerHTML='✕';
+      delBtn.addEventListener('click', ()=>{ favorites.splice(idx,1); saveFavorites(); renderFavorites(); });
+      row.appendChild(useBtn); row.appendChild(delBtn); favList.appendChild(row);
+    });
+  }
+  favAddBtn.addEventListener('click', ()=>{
+    const label = favLabelInput.value.trim() || 'مبلغ محفوظ';
+    if(current.dinars===0 && current.centimes===0) return;
+    favorites.unshift({ label, dinars: current.dinars, centimes: current.centimes });
+    favorites = favorites.slice(0,20);
+    favLabelInput.value=''; saveFavorites(); renderFavorites();
+  });
+
+  /* ============ أزرار التفاعل: نسخ، نطق، مشاركة ============ */
+  function flashCopied(btn){
+    const original = btn.innerHTML;
+    btn.classList.add('copied-flash');
+    btn.lastChild.textContent = ' تم النسخ';
+    setTimeout(()=>{ btn.innerHTML = original; btn.classList.remove('copied-flash'); }, 1400);
+  }
+  
+  function copyText(txt, btn){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(()=>flashCopied(btn)).catch(()=>fallbackCopy(txt,btn));
+    } else fallbackCopy(txt, btn);
+  }
+  
+  function fallbackCopy(txt, btn){
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); flashCopied(btn); }catch(e){} document.body.removeChild(ta);
+  }
+
+  document.getElementById('copyBtn').addEventListener('click', function() {
+    copyText(generatedWords[currentLang], this);
+  });
+
+  document.getElementById('readBtn').addEventListener('click', function() {
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    let u = new SpeechSynthesisUtterance(generatedWords[currentLang]);
+    u.lang = currentLang === 'ar' ? 'ar-SA' : (currentLang === 'fr' ? 'fr-FR' : 'en-US');
+    window.speechSynthesis.speak(u);
+  });
+
+  document.getElementById('shareBtn').addEventListener('click', function() {
+    const text = generatedWords[currentLang];
+    if(navigator.share){ navigator.share({ text }).catch(()=>{}); } else { copyText(text, this); }
+  });
+
+  /* ============ بدء التشغيل ============ */
+  applyCheckLayout();
+  recalc();
+  loadFavorites();
+
+  /* ============ اختبارات انحدار داخلية لتحويل الأرقام ============
+     منطق تحويل الأرقام إلى حروف حساس جدًا للأخطاء (خطأ صياغة واحد يعني
+     صكًا مكتوبًا بشكل خاطئ)، ولم يكن له أي اختبار سابقًا. هذه مجموعة قيم
+     مرجعية صحيحة (تم التحقق منها يدويًا) تُقارَن تلقائيًا بمخرجات الدوال
+     الحالية عند تفعيلها، لتكشف أي كسر مستقبلي عند تعديل الكود. لا تعمل
+     تلقائيًا لتبقى الكونسول نظيفًا للمستخدم العادي — فعّلها بإضافة
+     ?selftest=1 لعنوان الملف في المتصفح. */
+  if (window.location.search.includes('selftest')) {
+    const cases = [
+      [0,0,'صفر دينار جزائري'], [1,0,'دينار جزائري واحد'], [2,0,'ديناران جزائريان'],
+      [3,0,'ثلاثة دنانير جزائرية'], [11,0,'أحد عشر دينار جزائري'],
+      [100,0,'مائة دينار جزائري'], [200,0,'مئتان دينار جزائري'],
+      [300,0,'ثلاثمائة دينار جزائري'], [999,0,'تسعمائة وتسعة وتسعون دينار جزائري'],
+      [1000,0,'ألف دينار جزائري'], [2000,0,'ألفان دينار جزائري'],
+      [125430,50,'مائة وخمسة وعشرون ألف وأربعمائة وثلاثون دينار جزائري وخمسون سنتيم'],
+      [999999999999,0,'تسعمائة وتسعة وتسعون مليار وتسعمائة وتسعة وتسعون مليون وتسعمائة وتسعة وتسعون ألف وتسعمائة وتسعة وتسعون دينار جزائري'],
+      [0,1,'سنتيم واحد'], [0,2,'سنتيمان'], [0,3,'ثلاثة سنتيمات']
+    ];
+    let pass = 0;
+    cases.forEach(([d,c,expected]) => {
+      const actual = amountToArabicWords(d,c);
+      const ok = actual === expected;
+      if(ok) pass++;
+      console.assert(ok, `فشل اختبار (${d} دج ${c} سنتيم): توقعت "${expected}" لكن حصلت على "${actual}"`);
+    });
+    console.log(`اختبارات تحويل الأرقام: ${pass}/${cases.length} ناجحة`);
+  }
+
+})();
+</script>
+</body>
+</html>

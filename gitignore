@@ -1,0 +1,12 @@
+# ملفات نظام التشغيل
+.DS_Store
+Thumbs.db
+
+# ملفات المحررات/IDE
+.vscode/
+.idea/
+*.swp
+
+# ملفات مؤقتة محتملة عند التطوير المحلي
+*.log
+node_modules/
